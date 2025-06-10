@@ -24,7 +24,7 @@ export default function CreateDirector() {
     try {
       const token = localStorage.getItem('accessToken');
       const response = await axios.get(
-        'http://localhost:8000/api/pharmacies/',
+        'https://pharmacie-hefk.onrender.com/api/pharmacies/',
         {
           headers: {
             'Content-Type': 'application/json',
