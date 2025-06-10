@@ -7,4 +7,4 @@ services:
       python manage.py shell -c "from django.db import connection; with connection.cursor() as cursor: cursor.execute('DROP TABLE IF EXISTS paiement_frais_typefraisscolaire;')" || exit 1
       python manage.py makemigrations
       python manage.py migrate
-      python -m gunicorn Gf_scool.wsgi:application.wsgi:application --bind 0.0.0.0:$PORT
+      python -m gunicorn gestion_pharmacie.wsgi:application.wsgi:application --bind 0.0.0.0:$PORT
