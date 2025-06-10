@@ -27,7 +27,7 @@ const ListeMedicamentsPage = () => {
 
   useEffect(() => {
     if (token) {
-      axios.get('http://localhost:8000/api/produits-pharmacie/', {
+      axios.get('https://pharmacie-hefk.onrender.com/api/produits-pharmacie/', {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then(res => setMedicaments(res.data))
@@ -62,14 +62,14 @@ const ListeMedicamentsPage = () => {
 
     try {
       await axios.patch(
-        `http://localhost:8000/api/produits-pharmacie/${medicamentEdit.id}/`,
+        `https://pharmacie-hefk.onrender.com/api/produits-pharmacie/${medicamentEdit.id}/`,
         formData,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
       // Rafraîchir la liste après modification
-      const res = await axios.get('http://localhost:8000/api/produits-pharmacie/', {
+      const res = await axios.get('https://pharmacie-hefk.onrender.com/api/produits-pharmacie/', {
         headers: { Authorization: `Bearer ${token}` },
       });
       setMedicaments(res.data);

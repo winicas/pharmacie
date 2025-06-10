@@ -45,7 +45,7 @@ export default async function ExamenPatientPage({ params }: PageProps) {
 
     try {
       await axios.post(
-        `http://localhost:8000/api/clients/${id}/examen/`,
+        `https://pharmacie-hefk.onrender.com/api/clients/${id}/examen/`,
         formData,
         {
           headers: { Authorization: `Bearer ${accessToken}` },

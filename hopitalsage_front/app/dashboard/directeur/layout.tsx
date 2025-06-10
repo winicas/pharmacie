@@ -31,7 +31,7 @@ export default function PharmacieLayout({ children }: { children: ReactNode }) {
     const token = localStorage.getItem('accessToken');
 
     if (token) {
-      fetch('http://localhost:8000/api/pharmacie/', {
+      fetch('https://pharmacie-hefk.onrender.com/api/pharmacie/', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -40,7 +40,7 @@ export default function PharmacieLayout({ children }: { children: ReactNode }) {
         .then(data => setUser(data))
         .catch(err => console.error('Erreur user:', err));
 
-      fetch('http://localhost:8000/api/pharmacie/', {
+      fetch('https://pharmacie-hefk.onrender.com/api/pharmacie/', {
         headers: {
           Authorization: `Bearer ${token}`,
         },

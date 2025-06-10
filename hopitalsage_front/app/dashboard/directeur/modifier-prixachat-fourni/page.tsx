@@ -33,7 +33,7 @@ const Page = () => {
     setAccessToken(token)
 
     if (token) {
-      fetch('http://localhost:8000/api/fabricants/', {
+      fetch('https://pharmacie-hefk.onrender.com/api/fabricants/', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -52,7 +52,7 @@ const Page = () => {
 
   const chargerProduits = (fabricantId: string) => {
     if (accessToken && fabricantId) {
-      fetch(`http://localhost:8000/api/produits/${fabricantId}/`, {
+      fetch(`https://pharmacie-hefk.onrender.com/api/produits/${fabricantId}/`, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Accept': 'application/json',
@@ -84,7 +84,7 @@ const Page = () => {
     if (!accessToken) return
 
     Object.entries(prixModifies).forEach(([produitId, nouveauPrix]) => {
-      fetch(`http://localhost:8000/api/produit/${produitId}/modifier/`, {
+      fetch(`https://pharmacie-hefk.onrender.com/api/produit/${produitId}/modifier/`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${accessToken}`,

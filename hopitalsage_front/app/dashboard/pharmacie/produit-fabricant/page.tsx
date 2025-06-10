@@ -19,7 +19,7 @@ export default function CreateProduit() {
       if (!accessToken) return
 
       try {
-        const response = await axios.get('http://localhost:8000/api/fabricants/', {
+        const response = await axios.get('https://pharmacie-hefk.onrender.com/api/fabricants/', {
           headers: { Authorization: `Bearer ${accessToken}` },
         })
         setFabricants(response.data)
@@ -39,7 +39,7 @@ export default function CreateProduit() {
 
     try {
       await axios.post(
-        'http://localhost:8000/api/produits-fabricants/',
+        'https://pharmacie-hefk.onrender.com/api/produits-fabricants/',
         {
           fabricant: Number(fabricantId),
           nom: nom,

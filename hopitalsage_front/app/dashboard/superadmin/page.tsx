@@ -54,7 +54,7 @@ const SuperAdminDashboard = () => {
       }
 
       try {
-        const response = await fetch('http://localhost:8000/api/pharmacies/', { // ← Ajout du slash final
+        const response = await fetch('https://pharmacie-hefk.onrender.com/api/pharmacies/', { // ← Ajout du slash final
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

@@ -53,7 +53,7 @@ export default function CreateDirector() {
       }
 
       const response = await fetch(
-        `http://localhost:8000/api/create-director/${pharmacieId}/`,
+        `https://pharmacie-hefk.onrender.com/api/create-director/${pharmacieId}/`,
         {
           method: 'POST',
           headers: {

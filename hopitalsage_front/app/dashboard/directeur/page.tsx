@@ -35,7 +35,7 @@ export default function DashboardPharmacie() {
 
       try {
         // Récupération des statistiques
-        const statsRes = await fetch('http://localhost:8000/api/statistiques-du-jour/', {
+        const statsRes = await fetch('https://pharmacie-hefk.onrender.com/api/statistiques-du-jour/', {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!statsRes.ok) throw new Error(`Erreur stats: ${statsRes.status}`);
@@ -43,7 +43,7 @@ export default function DashboardPharmacie() {
         setStats(statsData);
 
         // Récupération des clients avec RDV
-        const clientsRes = await fetch('http://localhost:8000/api/clients-avec-rendezvous/', {
+        const clientsRes = await fetch('https://pharmacie-hefk.onrender.com/api/clients-avec-rendezvous/', {
           headers: { Authorization: `Bearer ${token}` },
         });
 

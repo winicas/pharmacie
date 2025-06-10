@@ -23,7 +23,7 @@ export default function ReceptionPage() {
     setLoading(true);
     setMessage('');
     try {
-      await axios.post('/api/reception/confirm/', {
+      await axios.post('https://pharmacie-hefk.onrender.com/api/reception/confirm/', {
         commande: commandeId,
         lignes: lignes.map(l => ({
           ligne_commande: parseInt(l.ligne_commande),
