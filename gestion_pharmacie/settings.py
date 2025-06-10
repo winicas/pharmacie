@@ -46,9 +46,8 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",
     'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
-CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
+    "https://nicapharmtechnologie.onrender.com",
 ]
 # Ajoutez ceci pour gérer les fichiers statiques en production
 STATIC_URL = '/static/'
