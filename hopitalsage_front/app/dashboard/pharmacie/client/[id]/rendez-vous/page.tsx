@@ -33,7 +33,7 @@ export default function RendezVousPage({ params }: { params: Promise<{ id: strin
 
   const fetchRendezVous = async () => {
     try {
-      const res = await axios.get(`http://localhost:8000/api/rendez-vous/client/${clientId}/`, {
+      const res = await axios.get(`https://pharmacie-hefk.onrender.com/api/rendez-vous/client/${clientId}/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       setRendezVous(res.data);
@@ -46,7 +46,7 @@ export default function RendezVousPage({ params }: { params: Promise<{ id: strin
     if (!date) return;
     try {
       const res = await axios.post(
-        'http://localhost:8000/api/rendez-vous/',
+        'https://pharmacie-hefk.onrender.com/api/rendez-vous/',
         {
           client: clientId,
           date: date.toISOString().split('T')[0],

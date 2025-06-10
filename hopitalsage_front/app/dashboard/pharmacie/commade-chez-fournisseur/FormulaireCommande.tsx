@@ -36,11 +36,11 @@ export default function FormulaireCommande() {
 
   useEffect(() => {
     if (accessToken) {
-      axios.get('http://localhost:8000/api/fabricants/', {
+      axios.get('https://pharmacie-hefk.onrender.com/api/fabricants/', {
         headers: { Authorization: `Bearer ${accessToken}` },
       }).then((res) => setFabricants(res.data));
 
-      axios.get('http://localhost:8000/api/requisitions/', {
+      axios.get('https://pharmacie-hefk.onrender.com/api/requisitions/', {
         headers: { Authorization: `Bearer ${accessToken}` },
       }).then((res) => setRequisitions(res.data));
     }
@@ -52,7 +52,7 @@ export default function FormulaireCommande() {
     setShowPDF(false);
     setPanier([]);
 
-    const res = await axios.get(`http://localhost:8000/api/fabricants/${id}/produits/`, {
+    const res = await axios.get(`https://pharmacie-hefk.onrender.com/api/fabricants/${id}/produits/`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
       const produitsTries = res.data.sort((a: ProduitFabricant, b: ProduitFabricant) =>
@@ -133,7 +133,7 @@ export default function FormulaireCommande() {
   };
 
   try {
-    await axios.post('http://localhost:8000/api/commandes-produits/', payload, {
+    await axios.post('https://pharmacie-hefk.onrender.com/api/commandes-produits/', payload, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
@@ -180,7 +180,7 @@ const ajouterDepuisRequisition = async (req: any) => {
 
   try {
     // Suppression dans la base de données
-    await axios.delete(`http://localhost:8000/api/requisitions/${req.id}/`, {
+    await axios.delete(`https://pharmacie-hefk.onrender.com/api/requisitions/${req.id}/`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 

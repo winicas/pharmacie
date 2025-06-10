@@ -80,7 +80,7 @@ export default function CreerClient() {
     }
     
     try {
-      const response = await axios.post('http://localhost:8000/api/clients/', 
+      const response = await axios.post('https://pharmacie-hefk.onrender.com/api/clients/', 
         dataToSend,
         {
           headers: { 

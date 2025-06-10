@@ -53,11 +53,11 @@ export default function RequisitionPage() {
   useEffect(() => {
     if (!accessToken) return;
 
-    axios.get('http://localhost:8000/api/user/me/', {
+    axios.get('https://pharmacie-hefk.onrender.com/api/user/me/', {
       headers: { Authorization: `Bearer ${accessToken}` },
     }).then(res => setUser(res.data));
 
-    axios.get('http://localhost:8000/api/pharmacie/', {
+    axios.get('https://pharmacie-hefk.onrender.com/api/pharmacie/', {
       headers: { Authorization: `Bearer ${accessToken}` },
     }).then(res => {
       if (res.data.length > 0) {
@@ -70,7 +70,7 @@ export default function RequisitionPage() {
   useEffect(() => {
     if (!accessToken || !pharmacieId) return;
 
-    axios.get('http://localhost:8000/api/produits-fabricants/', {
+    axios.get('https://pharmacie-hefk.onrender.com/api/produits-fabricants/', {
       headers: { Authorization: `Bearer ${accessToken}` },
     }).then(res => setProduits(res.data));
 
@@ -78,7 +78,7 @@ export default function RequisitionPage() {
   }, [accessToken, pharmacieId]);
 
   const chargerRequisitions = () => {
-    axios.get(`http://localhost:8000/api/requisitions/?pharmacie=${pharmacieId}`, {
+    axios.get(`https://pharmacie-hefk.onrender.com/api/requisitions/?pharmacie=${pharmacieId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     }).then(res => setRequisitions(res.data));
   };
@@ -96,7 +96,7 @@ export default function RequisitionPage() {
       ...(produit.id ? { produit_fabricant: produit.id } : { nom_personnalise: nom }),
     };
 
-    axios.post('http://localhost:8000/api/requisitions/', payload, {
+    axios.post('https://pharmacie-hefk.onrender.com/api/requisitions/', payload, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
       .then(() => {
@@ -115,7 +115,7 @@ export default function RequisitionPage() {
 
     if (confirm("Supprimer cette réquisition ?")) {
       try {
-        await axios.delete(`http://localhost:8000/api/requisitions/${id}/`, {
+        await axios.delete(`https://pharmacie-hefk.onrender.com/api/requisitions/${id}/`, {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
@@ -130,7 +130,7 @@ export default function RequisitionPage() {
 
   const incrementerDemande = async (id: number) => {
     try {
-      await axios.post(`http://localhost:8000/api/requisitions/${id}/incrementer/`, null, {
+      await axios.post(`https://pharmacie-hefk.onrender.com/api/requisitions/${id}/incrementer/`, null, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },

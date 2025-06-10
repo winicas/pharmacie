@@ -106,7 +106,7 @@ export default async function OrdonnancePatientPage({ params }: PageProps) {
 
     try {
       await axios.post(
-        `http://localhost:8000/api/clients/${id}/ordonnance/`,
+        `https://pharmacie-hefk.onrender.com/api/clients/${id}/ordonnance/`,
         payload,
         {
           headers: {

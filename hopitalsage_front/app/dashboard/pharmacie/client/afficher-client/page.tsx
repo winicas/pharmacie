@@ -38,7 +38,7 @@ export default function ClientsPage() {
   const fetchClients = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:8000/api/clients/', {
+      const response = await axios.get('https://pharmacie-hefk.onrender.com/api/clients/', {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       setClients(response.data);

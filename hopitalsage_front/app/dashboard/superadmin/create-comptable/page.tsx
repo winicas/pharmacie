@@ -36,7 +36,7 @@ const AjouterComptable = () => {
       }
 
       try {
-        const response = await axios.get('https://ecole-1-26o4.onrender.com/api/dashboard/admin/', {
+        const response = await axios.get('https://pharmacie-hefk.onrender.com/api/dashboard/admin/', {
           headers: {
             Authorization: `Bearer ${token}`,
           },

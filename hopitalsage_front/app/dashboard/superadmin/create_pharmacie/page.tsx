@@ -20,7 +20,7 @@ export default function CreerPharmacie() {
 const handleSubmit = async (e) => {
   e.preventDefault();
   try {
-    const response = await fetch('http://localhost:8000/api/pharmacies/', { // ← Slash final ajouté
+    const response = await fetch('https://pharmacie-hefk.onrender.com/api/pharmacies/', { // ← Slash final ajouté
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

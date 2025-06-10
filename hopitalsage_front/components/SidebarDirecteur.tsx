@@ -30,7 +30,7 @@ const handleSauvegardeSQL = async () => {
   if (!token) return;
 
   try {
-    const response = await fetch("http://localhost:8000/api/sauvegarde-sql/", {
+    const response = await fetch("https://pharmacie-hefk.onrender.com/api/sauvegarde-sql/", {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -65,7 +65,7 @@ const handleCopierVersUSB = async () => {
     setIsCopying(true);
 
     // Lance la requête
-    const copiePromise = fetch("http://localhost:8000/api/copier-usb/", {
+    const copiePromise = fetch("https://pharmacie-hefk.onrender.com/api/copier-usb/", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,

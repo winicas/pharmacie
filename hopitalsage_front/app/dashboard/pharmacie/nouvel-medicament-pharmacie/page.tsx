@@ -30,7 +30,7 @@ const NouveauProduitPage = () => {
   // Charger les fabricants
   useEffect(() => {
     if (token) {
-      axios.get('http://localhost:8000/api/fabricants/', {
+      axios.get('https://pharmacie-hefk.onrender.com/api/fabricants/', {
         headers: { Authorization: `Bearer ${token}` }
       }).then(res => setFabricants(res.data));
     }
@@ -49,7 +49,7 @@ const NouveauProduitPage = () => {
 
     if (fabricantId && token) {
       try {
-        const res = await axios.get(`http://localhost:8000/api/produits-fabricant/?fabricant=${fabricantId}`, {
+        const res = await axios.get(`https://pharmacie-hefk.onrender.com/api/produits-fabricant/?fabricant=${fabricantId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setProduits(res.data);
@@ -84,7 +84,7 @@ const NouveauProduitPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:8000/api/produits-pharmacie/', formData, {
+      await axios.post('https://pharmacie-hefk.onrender.com/api/produits-pharmacie/', formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
       router.push('/dashboard/pharmacie/nouvel-medicament-pharmacie/afficher-medicament');

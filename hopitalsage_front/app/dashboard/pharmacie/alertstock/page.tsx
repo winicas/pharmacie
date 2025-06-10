@@ -28,7 +28,7 @@ export default function AlertesRupturePage() {
       return;
     }
 
-    fetch('http://localhost:8000/api/produits-alerte/', {
+    fetch('https://pharmacie-hefk.onrender.com/api/produits-alerte/', {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },

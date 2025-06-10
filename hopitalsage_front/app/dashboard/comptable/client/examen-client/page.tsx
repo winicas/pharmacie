@@ -30,12 +30,12 @@ export default function ExamensClient() {
 
   useEffect(() => {
     // Chargement des données client et examens
-    axios.get(`http://localhost:8000/api/clients/${clientId}/`, {
+    axios.get(`https://pharmacie-hefk.onrender.com/api/clients/${clientId}/`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
     })
     .then(response => setClient(response.data))
     
-    axios.get(`http://localhost:8000/api/exams/?client=${clientId}`, {
+    axios.get(`https://pharmacie-hefk.onrender.com/api/exams/?client=${clientId}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
     })
     .then(response => setExamens(response.data))
@@ -45,7 +45,7 @@ export default function ExamensClient() {
     e.preventDefault()
     
     try {
-      await axios.post('http://localhost:8000/api/exams/', {
+      await axios.post('https://pharmacie-hefk.onrender.com/api/exams/', {
         client: clientId,
         ...newExam
       }, {
@@ -53,7 +53,7 @@ export default function ExamensClient() {
       })
       
       // Rechargement des examens
-      const response = await axios.get(`http://localhost:8000/api/exams/?client=${clientId}`)
+      const response = await axios.get(`https://pharmacie-hefk.onrender.com/api/exams/?client=${clientId}`)
       setExamens(response.data)
       setNewExam({ tension_arterielle: '', examen_malaria: '', remarques: '' })
       alert('Examen ajouté avec succès !')
