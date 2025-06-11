@@ -49,7 +49,10 @@ export default function RendezVousPage({ params }: { params: Promise<{ id: strin
         'https://pharmacie-hefk.onrender.com/api/rendez-vous/',
         {
           client: clientId,
-          date: date.toISOString().split('T')[0],
+          date: date.getFullYear() + '-' + 
+          String(date.getMonth() + 1).padStart(2, '0') + '-' +
+          String(date.getDate()).padStart(2, '0'),
+
           heure: heure,
         },
         {

@@ -47,6 +47,13 @@ const SidebarAdmin = ({ userRole }: SidebarProps) => {
       path: '/dashboard/superadmin/produit-fabricant',
       roles: ['superuser', 'admin'],
     },
+      {
+      label: 'MODIFIER PRIX MEDICAMENT FOURNISSEUR',
+      icon: '🧑‍💻',
+      path: '/dashboard/superadmin/modifier-prixachat-fourni',
+      roles: ['superuser', 'admin'],
+    },
+
     {
       label: 'Déconnexion',
       icon: '🚪',

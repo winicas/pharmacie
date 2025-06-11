@@ -152,7 +152,7 @@ const handleCopierVersUSB = async () => {
           className="bg-emerald-200/20 dark:bg-emerald-900 text-white p-4 rounded-2xl text-center text-sm shadow-md mb-6"
         >
           <p className="font-semibold mb-2">📢 Message de l'Administrateur :</p>
-          <p>Bienvenue chez <strong>NICA PHARM</strong> 🌿</p>
+          <p>Bienvenue chez <strong>NICA PHARMTECH</strong> 🌿</p>
           <a
             href="https://www.nica.com" 
             target="_blank"
