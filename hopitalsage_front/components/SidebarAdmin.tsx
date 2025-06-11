@@ -18,7 +18,7 @@ const SidebarAdmin = ({ userRole }: SidebarProps) => {
       roles: ['superuser', 'admin', 'directeur', 'comptable'],
     },
     {
-      label: 'Ajouter École',
+      label: 'Ajouter PHARMACIE',
       icon: '🏫',
       path: '/dashboard/superadmin/create_pharmacie',
       roles: ['superuser', 'admin'],
@@ -33,6 +33,18 @@ const SidebarAdmin = ({ userRole }: SidebarProps) => {
       label: 'Gerer le taux Echange',
       icon: '🧑‍💻',
       path: '/dashboard/superadmin/taux-echange',
+      roles: ['superuser', 'admin'],
+    },
+     {
+      label: 'CREER FOURNISSEUR',
+      icon: '🧑‍💻',
+      path: '/dashboard/superadmin/fabricant',
+      roles: ['superuser', 'admin'],
+    },
+     {
+      label: 'CREER MEDICAMENT FOURNISSEUR',
+      icon: '🧑‍💻',
+      path: '/dashboard/superadmin/produit-fabricant',
       roles: ['superuser', 'admin'],
     },
     {
