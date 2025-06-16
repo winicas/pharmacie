@@ -69,7 +69,7 @@ urlpatterns = [
     path('api/copier-usb/', copier_vers_usb, name='copier_vers_usb'),
     path('api/produits/<int:fabricant_id>/', produits_par_fabricants, name='api_produits_fabricant'),
     path('api/produit/<int:produit_id>/modifier/', modifier_prix_produit, name='api_modifier_prix'),
-     path('api/publicite-active/', PubliciteActuelleView.as_view()),
+    path('api/publicite-active/', PubliciteActuelleView.as_view()),
     path('api/requisitions/delete_all/', delete_all_requisitions, name='delete_all_requisitions'),
 
 
