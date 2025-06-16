@@ -46,7 +46,7 @@ export default function VentePage() {
   useEffect(() => {
     if (accessToken) {
       axios
-        .get('https://pharmacie-hefk.onrender.com/api/pharmacie/', {
+        .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacie/`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         })
         .then((res) => {
@@ -65,7 +65,7 @@ export default function VentePage() {
 
   const loadProduits = (pharmacieId: number) => {
     axios
-      .get(`https://pharmacie-hefk.onrender.com/api/produits-pharmacie/?pharmacie=${pharmacieId}`, {
+      .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits-pharmacie/?pharmacie=${pharmacieId}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
       .then((res) => setProduits(res.data))
@@ -74,7 +74,7 @@ export default function VentePage() {
 
   const loadClients = (pharmacieId: number) => {
     axios
-      .get(`https://pharmacie-hefk.onrender.com/api/clients/?pharmacie=${pharmacieId}`, {
+      .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/clients/?pharmacie=${pharmacieId}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
       .then((res) => setClients(res.data))
@@ -179,7 +179,7 @@ export default function VentePage() {
     };
 
     try {
-      await axios.post('https://pharmacie-hefk.onrender.com/api/ventes/', payload, {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/ventes/`, payload, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
 

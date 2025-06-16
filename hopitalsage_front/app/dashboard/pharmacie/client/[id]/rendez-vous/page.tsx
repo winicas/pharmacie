@@ -46,7 +46,7 @@ export default function RendezVousPage({ params }: { params: Promise<{ id: strin
     if (!date) return;
     try {
       const res = await axios.post(
-        'https://pharmacie-hefk.onrender.com/api/rendez-vous/',
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/rendez-vous/`,
         {
           client: clientId,
           date: date.getFullYear() + '-' + 

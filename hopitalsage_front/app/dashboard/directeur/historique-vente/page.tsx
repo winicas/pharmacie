@@ -29,7 +29,7 @@ export default function HistoriqueVentes() {
     const token = localStorage.getItem('accessToken');
     if (!token) return;
 
-    let url = 'https://pharmacie-hefk.onrender.com/api/historique-ventes/';
+    let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/historique-ventes/`;
     const params = new URLSearchParams();
 
     if (dateDebut) params.append('date_debut', dateDebut);

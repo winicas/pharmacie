@@ -21,7 +21,7 @@ export default function CreateFabricant() {
 
     try {
       await axios.post(
-        'https://pharmacie-hefk.onrender.com/api/fabricants/', // URL complète
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/fabricants/`, // URL complète
         {
           nom: nom,
           pays_origine: pays,

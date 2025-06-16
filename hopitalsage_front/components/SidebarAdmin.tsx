@@ -53,6 +53,19 @@ const SidebarAdmin = ({ userRole }: SidebarProps) => {
       path: '/dashboard/superadmin/modifier-prixachat-fourni',
       roles: ['superuser', 'admin'],
     },
+      {
+      label: 'CARTE DE TOUTE MES PHARMACIES',
+      icon: '🧑‍💻',
+      path: '/dashboard/superadmin/carte',
+      roles: ['superuser', 'admin'],
+    },
+
+        {
+      label: 'PUBLICITE',
+      icon: '🧑‍💻',
+      path: '/dashboard/superadmin/publicite',
+      roles: ['superuser', 'admin'],
+    },
 
     {
       label: 'Déconnexion',

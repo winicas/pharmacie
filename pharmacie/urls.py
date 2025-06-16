@@ -37,7 +37,10 @@ from .views import (
     RendezVousViewSet,
 RendezVousListCreateView,
 RendezVousByClientView,
-clients_avec_rendezvous
+clients_avec_rendezvous,
+LotProduitPharmacieViewSet,
+PubliciteActuelleView
+
 
 
 )
@@ -53,6 +56,7 @@ router.register(r'clients', ClientViewSet)
 router.register(r'exams', MedicalExamViewSet)
 router.register(r'requisitions', RequisitionViewSet, basename='requisitions')
 router.register(r'rendezvous', RendezVousViewSet)
+router.register(r'lots', LotProduitPharmacieViewSet)
 
 
 urlpatterns = [
@@ -65,7 +69,7 @@ urlpatterns = [
     path('api/copier-usb/', copier_vers_usb, name='copier_vers_usb'),
     path('api/produits/<int:fabricant_id>/', produits_par_fabricants, name='api_produits_fabricant'),
     path('api/produit/<int:produit_id>/modifier/', modifier_prix_produit, name='api_modifier_prix'),
-
+     path('api/publicite-active/', PubliciteActuelleView.as_view()),
     path('api/requisitions/delete_all/', delete_all_requisitions, name='delete_all_requisitions'),
 
 
@@ -95,6 +99,7 @@ urlpatterns = [
     path('api/clients/<int:pk>/examen/', CreateMedicalExamView.as_view(), name='create-exam'),
     path('api/clients/<int:pk>/ordonnance/', CreatePrescriptionView.as_view(), name='create-prescription'),
     path('api/clients/<int:pk>/dossier-medical/', DossierMedicalClientView.as_view(), name='dossier-medical'),
+    
    
     
 ]

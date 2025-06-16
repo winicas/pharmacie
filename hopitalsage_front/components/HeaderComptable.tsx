@@ -44,7 +44,7 @@ const HeaderPharmacie = ({ pharmacie, user }: HeaderPharmacieProps) => {
   const handleLogout = async () => {
     const refreshToken = localStorage.getItem("refreshToken");
     try {
-      await axios.post("https://votre-api.com/logout/", { refresh: refreshToken });
+      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/login/`, { refresh: refreshToken });
     } catch (error) {
       console.error("Erreur de déconnexion :", error);
     }
@@ -158,6 +158,8 @@ const HeaderPharmacie = ({ pharmacie, user }: HeaderPharmacieProps) => {
       submenu: [
         { href: '/dashboard/pharmacie/nouvel-medicament-pharmacie', label: 'Ajouter un produit', icon: '➕' },
         { href: '/dashboard/pharmacie/nouvel-medicament-pharmacie/afficher-medicament', label: 'Liste des produits', icon: '📦' },
+        { href: '/dashboard/pharmacie/nouveau-lot/', label: 'Liste de Lots des produits', icon: '📦' },
+        { href: '/dashboard/pharmacie/produit-perimer/', label: 'Gestion de Peremption', icon: '📦' },
       ],
       isTitle: true,
     },
@@ -229,7 +231,8 @@ const HeaderPharmacie = ({ pharmacie, user }: HeaderPharmacieProps) => {
       initial={{ y: -50, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.7 }}
-      className="flex justify-between items-center px-8 py-5 m-4 rounded-3xl bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-700 dark:from-emerald-900 dark:via-emerald-800 dark:to-emerald-700 shadow-2xl backdrop-blur-md relative"
+      className="sticky top-0 z-40 flex justify-between items-center px-8 py-5 bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-700 dark:from-emerald-900 dark:via-emerald-800 dark:to-emerald-700 shadow-md backdrop-blur-md"
+
     >
       <div className="flex items-center gap-4">
         <div className="relative">
