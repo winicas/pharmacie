@@ -1,1 +1,8 @@
-{}
+{
+  "/dashboard/superadmin/page": "app/dashboard/superadmin/page.js",
+  "/dashboard/superadmin/publicite/page": "app/dashboard/superadmin/publicite/page.js",
+  "/dashboard/pharmacie/nouvel-medicament-pharmacie/page": "app/dashboard/pharmacie/nouvel-medicament-pharmacie/page.js",
+  "/dashboard/pharmacie/produit-perimer/page": "app/dashboard/pharmacie/produit-perimer/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/dashboard/directeur/page": "app/dashboard/directeur/page.js"
+}

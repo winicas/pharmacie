@@ -9,8 +9,13 @@ class LoginSerializer(serializers.Serializer):
     def validate(self, data):
         user = authenticate(**data)
         if user and user.is_active:
+            # Vérifier si l'utilisateur a une pharmacie liée
+            if user.pharmacie:
+                if not user.pharmacie.is_active:
+                    raise serializers.ValidationError("La pharmacie associée est désactivée.")
             return user
         raise serializers.ValidationError("Identifiants incorrects")
+
 
 from django.contrib.auth import get_user_model
 
@@ -19,6 +24,8 @@ User = get_user_model()
 from rest_framework import serializers
 from .models import Pharmacie, User
 from django.contrib.auth.hashers import make_password
+from rest_framework import serializers
+from .models import Pharmacie
 
 class PharmacieSerializer(serializers.ModelSerializer):
     class Meta:
@@ -34,7 +41,14 @@ class PharmacieSerializer(serializers.ModelSerializer):
             'ni',
             'telephone',
             'logo_pharm',
+            'is_active',
+            'latitude',
+            'longitude',
+            'montant_mensuel',
         ]
+        read_only_fields = ['id']
+
+
 
 class UserSerializer(serializers.ModelSerializer):
     pharmacie = PharmacieSerializer(read_only=True)

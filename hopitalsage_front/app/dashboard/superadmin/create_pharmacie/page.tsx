@@ -1,6 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Head from 'next/head';
 
 export default function CreerPharmacie() {
@@ -14,27 +14,63 @@ export default function CreerPharmacie() {
     idnat: '',
     ni: '',
     telephone: '',
+    latitude: null,
+    longitude: null,
+    montant_mensuel: '',
   });
 
- // dashboard/superadmin/create_pharmacie/page.tsx
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  try {
-    const response = await fetch('https://pharmacie-hefk.onrender.com/api/pharmacies/', { // ← Slash final ajouté
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+ useEffect(() => {
+  if (navigator.geolocation) {
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        setFormData((prev) => ({
+          ...prev,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        }));
       },
-      body: JSON.stringify(formData),
-    });
-    if (response.ok) {
-      router.push('/dashboard/superadmin');
-    }
-  } catch (error) {
-    console.error('Erreur lors de la création :', error);
+      (error) => {
+        console.error('Erreur de géolocalisation :', error);
+      },
+      
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+
+    // Nettoyer le watcher quand le composant est démonté
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
+  } else {
+    console.error('Géolocalisation non supportée');
   }
-};
+}, []);
+
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacies/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+        },
+        body: JSON.stringify(formData),
+      });
+      if (response.ok) {
+        router.push('/dashboard/superadmin');
+      } else {
+        const error = await response.json();
+        console.error('Erreur serveur:', error);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la création :', error);
+    }
+  };
 
   return (
     <>
@@ -44,103 +80,60 @@ const handleSubmit = async (e) => {
       <div className="p-6">
         <h1 className="text-2xl mb-4">Nouvelle Pharmacie</h1>
         <form onSubmit={handleSubmit}>
-          {/* Champs du formulaire */}
+          {/** Champs classiques */}
+          {[
+            { name: 'nom_pharm', placeholder: 'Nom de la pharmacie' },
+            { name: 'ville_pharm', placeholder: 'Ville' },
+            { name: 'commune_pharm', placeholder: 'Commune/Arrondissement' },
+            { name: 'adresse_pharm', placeholder: 'Adresse détaillée', type: 'textarea' },
+            { name: 'rccm', placeholder: 'Numéro RCCM' },
+            { name: 'idnat', placeholder: 'Numéro IDNAT' },
+            { name: 'ni', placeholder: 'Numéro National' },
+            { name: 'telephone', placeholder: 'Téléphone' },
+          ].map((field) =>
+            field.type === 'textarea' ? (
+              <textarea
+                key={field.name}
+                name={field.name}
+                value={(formData as any)[field.name]}
+                onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
+                className="w-full p-2 border rounded mb-4"
+                placeholder={field.placeholder}
+                required
+                rows={3}
+              />
+            ) : (
+              <input
+                key={field.name}
+                type="text"
+                name={field.name}
+                value={(formData as any)[field.name]}
+                onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
+                className="w-full p-2 border rounded mb-4"
+                placeholder={field.placeholder}
+                required
+              />
+            )
+          )}
+
+          {/** Champ pour le montant mensuel */}
           <input
-            type="text"
-            name="nom_pharm"
-            value={formData.nom_pharm}
-            onChange={(e) =>
-              setFormData({ ...formData, nom_pharm: e.target.value })
-            }
+            type="number"
+            step="0.01"
+            name="montant_mensuel"
+            value={formData.montant_mensuel}
+            onChange={(e) => setFormData({ ...formData, montant_mensuel: e.target.value })}
             className="w-full p-2 border rounded mb-4"
-            placeholder="Nom de la pharmacie"
+            placeholder="Montant mensuel à payer"
             required
           />
 
-          {/* Champs ajoutés */}
-          <input
-            type="text"
-            name="ville_pharm"
-            value={formData.ville_pharm}
-            onChange={(e) =>
-              setFormData({ ...formData, ville_pharm: e.target.value })
-            }
-            className="w-full p-2 border rounded mb-4"
-            placeholder="Ville"
-            required
-          />
-
-          <input
-            type="text"
-            name="commune_pharm"
-            value={formData.commune_pharm}
-            onChange={(e) =>
-              setFormData({ ...formData, commune_pharm: e.target.value })
-            }
-            className="w-full p-2 border rounded mb-4"
-            placeholder="Commune/Arrondissement"
-            required
-          />
-
-          <textarea
-            name="adresse_pharm"
-            value={formData.adresse_pharm}
-            onChange={(e) =>
-              setFormData({ ...formData, adresse_pharm: e.target.value })
-            }
-            className="w-full p-2 border rounded mb-4"
-            placeholder="Adresse détaillée"
-            rows={3}
-            required
-          />
-
-          <input
-            type="text"
-            name="rccm"
-            value={formData.rccm}
-            onChange={(e) =>
-              setFormData({ ...formData, rccm: e.target.value })
-            }
-            className="w-full p-2 border rounded mb-4"
-            placeholder="Numéro RCCM"
-            required
-          />
-
-          <input
-            type="text"
-            name="idnat"
-            value={formData.idnat}
-            onChange={(e) =>
-              setFormData({ ...formData, idnat: e.target.value })
-            }
-            className="w-full p-2 border rounded mb-4"
-            placeholder="Numéro IDNAT"
-            required
-          />
-
-          <input
-            type="text"
-            name="ni"
-            value={formData.ni}
-            onChange={(e) =>
-              setFormData({ ...formData, ni: e.target.value })
-            }
-            className="w-full p-2 border rounded mb-4"
-            placeholder="Numéro National"
-            required
-          />
-
-          <input
-            type="text"
-            name="telephone"
-            value={formData.telephone}
-            onChange={(e) =>
-              setFormData({ ...formData, telephone: e.target.value })
-            }
-            className="w-full p-2 border rounded mb-4"
-            placeholder="Téléphone"
-            required
-          />
+          {/* Coordonnées GPS affichées en lecture seule */}
+          <div className="text-sm text-gray-500 mb-2">
+            📍 Position GPS détectée :
+            <br />
+            Latitude : {formData.latitude ?? '...'} / Longitude : {formData.longitude ?? '...'}
+          </div>
 
           <button
             type="submit"

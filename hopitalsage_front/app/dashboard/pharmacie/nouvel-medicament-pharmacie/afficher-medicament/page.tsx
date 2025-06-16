@@ -25,7 +25,7 @@ const ListeMedicamentsPage = () => {
 
   useEffect(() => {
     if (token) {
-      axios.get('https://pharmacie-hefk.onrender.com/api/produits-pharmacie/', {
+      axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits-pharmacie/`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then(res => setMedicaments(res.data))

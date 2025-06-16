@@ -110,7 +110,7 @@ class ConfirmerReceptionView(APIView):
             serializer.save(utilisateur=request.user)
             return Response({"message": "Réception confirmée avec succès."}, status=201)
         return Response(serializer.errors, status=400)
-    
+
 from rest_framework.generics import RetrieveAPIView
 from .models import CommandeProduit
 from .serializers import CommandeProduitDetailSerializer
@@ -937,3 +937,72 @@ def clients_avec_rendezvous(request):
 
     return Response(results)
 
+
+###################### gestion de lot de medicament########################
+from rest_framework import viewsets
+from .models import LotProduitPharmacie
+from .serializers import LotProduitPharmacieSerializer
+from datetime import datetime
+from datetime import datetime
+from rest_framework import viewsets
+from .models import LotProduitPharmacie
+from .serializers import LotProduitPharmacieSerializer
+
+class LotProduitPharmacieViewSet(viewsets.ModelViewSet):
+    queryset = LotProduitPharmacie.objects.all()
+    serializer_class = LotProduitPharmacieSerializer
+
+    def get_queryset(self):
+        queryset = LotProduitPharmacie.objects.all()
+        produit_id = self.request.query_params.get('produit')
+        date_debut = self.request.query_params.get('date_debut')
+        date_fin = self.request.query_params.get('date_fin')
+        date_max = self.request.query_params.get('date_max')  # <-- 🆕
+
+        if produit_id:
+            queryset = queryset.filter(produit_id=produit_id)
+
+        if date_debut:
+            try:
+                date_debut_obj = datetime.strptime(date_debut, '%Y-%m-%d').date()
+                queryset = queryset.filter(date_entree__gte=date_debut_obj)
+            except ValueError:
+                pass
+
+        if date_fin:
+            try:
+                date_fin_obj = datetime.strptime(date_fin, '%Y-%m-%d').date()
+                queryset = queryset.filter(date_entree__lte=date_fin_obj)
+            except ValueError:
+                pass
+
+        if date_max:
+            try:
+                date_max_obj = datetime.strptime(date_max, '%Y-%m-%d').date()
+                queryset = queryset.filter(date_peremption__lte=date_max_obj)  # <-- 🆕
+            except ValueError:
+                pass
+
+        return queryset
+
+############# PUBLICITE MEDICAMENT #####################
+# views.py
+from datetime import date
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .models import PublicitePharmacie
+from .serializers import PubliciteSerializer
+
+class PubliciteActuelleView(APIView):
+    def get(self, request):
+        aujourd_hui = date.today()
+        pub = PublicitePharmacie.objects.filter(
+            date_debut__lte=aujourd_hui,
+            date_fin__gte=aujourd_hui
+        ).order_by('-date_debut').first()
+
+        if not pub:
+            return Response({"image": "", "description": "", "date_debut": "", "date_fin": ""})
+        
+        serializer = PubliciteSerializer(pub, context={"request": request})
+        return Response(serializer.data)

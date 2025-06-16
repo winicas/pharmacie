@@ -34,7 +34,7 @@ export default function ReceptionCommandePage() {
       }
       try {
         console.log("Fetching commande avec id:", numericId);
-        const res = await axios.get(`https://pharmacie-hefk.onrender.com/api/commande/${numericId}/`, {
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/${numericId}/`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -73,7 +73,7 @@ export default function ReceptionCommandePage() {
 
     try {
       await axios.post(
-        'https://pharmacie-hefk.onrender.com/api/reception/confirm/',
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/reception/confirm/`,
         {
           commande: id,
           lignes: lignes.map((l) => ({

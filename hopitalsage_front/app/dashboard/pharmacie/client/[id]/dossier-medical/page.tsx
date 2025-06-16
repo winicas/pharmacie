@@ -45,7 +45,7 @@ export default function DossierMedicalPage({ params }: { params: Promise<{ id: s
 
   useEffect(() => {
     if (accessToken && id) {
-      axios.get(`https://pharmacie-hefk.onrender.com/api/clients/${id}/dossier-medical/`, {
+      axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/clients/${id}/dossier-medical/`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },

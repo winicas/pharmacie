@@ -49,7 +49,7 @@ export default function CommandesAConfirmer() {
       return
     }
 
-    fetch('https://pharmacie-hefk.onrender.com/api/commandes-produitss/', {
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/commandes-produitss/`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
@@ -114,7 +114,7 @@ const handleQuantiteChange = (ligneId: number, value: string) => {
 
       console.log("Données envoyées à l'API :", { commande: commandeId, lignes: lignesData })
 
-      const response = await fetch('https://pharmacie-hefk.onrender.com/api/reception/confirm/', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/reception/confirm/`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

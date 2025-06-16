@@ -30,7 +30,7 @@ const handleSauvegardeSQL = async () => {
   if (!token) return;
 
   try {
-    const response = await fetch("https://pharmacie-hefk.onrender.com/api/sauvegarde-sql/", {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/sauvegarde-sql/`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -65,7 +65,7 @@ const handleCopierVersUSB = async () => {
     setIsCopying(true);
 
     // Lance la requête
-    const copiePromise = fetch("https://pharmacie-hefk.onrender.com/api/copier-usb/", {
+    const copiePromise = fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/copier-usb/`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -154,7 +154,7 @@ const handleCopierVersUSB = async () => {
           <p className="font-semibold mb-2">📢 Message de l'Administrateur :</p>
           <p>Bienvenue chez <strong>NICA PHARMTECH</strong> 🌿</p>
           <a
-            href="https://www.nica.com" 
+            href="https://www.nicatech.com" 
             target="_blank"
             rel="noopener noreferrer"
             className="text-emerald-200 underline text-xs mt-2 inline-block"
@@ -209,7 +209,7 @@ const handleCopierVersUSB = async () => {
       {/* Footer */}
       <div className="text-center text-white text-xs mt-8">
         <p className="font-bold">© Nicatech 2025</p>
-        <p className="mt-1">Développé par William LOSEKA Kings</p>
+        <p className="mt-1">Développé par Ir. XUBUNTU</p>
       </div>
     </aside>
   );

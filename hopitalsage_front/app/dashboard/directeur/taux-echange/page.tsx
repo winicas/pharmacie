@@ -17,7 +17,7 @@ export default function TauxChangePage() {
       if (!accessToken) return
 
       try {
-        const res = await axios.get('https://pharmacie-hefk.onrender.com/api/taux-change/', {
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/taux-change/`, {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
@@ -45,7 +45,7 @@ export default function TauxChangePage() {
 
     try {
       await axios.post(
-        'https://pharmacie-hefk.onrender.com/api/taux-change/',
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/taux-change/`,
         { taux: parseFloat(newTaux) },
         {
           headers: {

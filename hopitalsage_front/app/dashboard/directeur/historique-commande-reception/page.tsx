@@ -27,7 +27,7 @@ export default function HistoriqueMouvements() {
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     if (token) {
-      fetch('https://pharmacie-hefk.onrender.com/api/historique-mouvements/', {
+      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/historique-mouvements/`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

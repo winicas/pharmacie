@@ -18,7 +18,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await axios.post('https://pharmacie-hefk.onrender.com/api/login/', {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/login/`, {
         username,
         password,
       });

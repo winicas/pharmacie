@@ -56,9 +56,11 @@ class FabricantSerializer(serializers.ModelSerializer):
 from rest_framework import serializers
 from .models import ProduitPharmacie, ProduitFabricant
 from rest_framework import serializers
-from .models import ProduitPharmacie, ProduitFabricant
+from .models import ProduitPharmacie, ProduitFabricant, LotProduitPharmacie
 from rest_framework import serializers
 from .models import ProduitPharmacie, TauxChange
+from .models import LotProduitPharmacie
+from datetime import date
 
 class ProduitPharmacieSerializer(serializers.ModelSerializer):
     class Meta:
@@ -71,22 +73,55 @@ class ProduitPharmacieSerializer(serializers.ModelSerializer):
         prix_achat = produit_fabricant.prix_achat
         devise = produit_fabricant.devise
 
-        # Convertir en CDF si devise USD
+        # Convertir en CDF si USD
         if devise == 'USD':
             try:
                 taux = TauxChange.objects.latest('date').taux
                 prix_achat = prix_achat * taux
             except TauxChange.DoesNotExist:
-                pass  # fallback : garder prix USD tel quel
+                pass
 
         validated_data['prix_achat'] = prix_achat
 
-        # Calcul automatique du prix de vente ici (optionnel)
         marge = validated_data.get('marge_beneficiaire')
         if marge is not None:
             validated_data['prix_vente'] = prix_achat + (prix_achat * marge / 100)
 
-        return super().create(validated_data)
+        # ✅ Création du produit
+        produit = super().create(validated_data)
+
+        # ✅ Création automatique du lot lié à ce produit
+        LotProduitPharmacie.objects.create(
+            produit=produit,
+            numero_lot='001A',
+            date_peremption=validated_data['date_peremption'],
+            quantite=validated_data['quantite'],
+            prix_achat=produit.prix_achat,
+            prix_vente=produit.prix_vente,
+        )
+
+        return produit
+# serializers.py
+from rest_framework import serializers
+from .models import LotProduitPharmacie
+
+class LotProduitPharmacieSerializer(serializers.ModelSerializer):
+    nom_medicament = serializers.CharField(source='produit.nom_medicament', read_only=True)
+
+    class Meta:
+        model = LotProduitPharmacie
+        fields = [
+            'id',
+            'produit',
+            'nom_medicament',
+            'numero_lot',
+            'date_peremption',
+            'date_entree',
+            'quantite',
+            'prix_achat',
+            'prix_vente'
+        ]
+
 
 from rest_framework import serializers
 from .models import ProduitFabricant
@@ -206,6 +241,8 @@ class ReceptionLigneSerializer(serializers.ModelSerializer):
     def validate(self, data):
         print("Données reçues dans ReceptionLigneSerializer :", data)
         return data
+from datetime import date, timedelta
+
 class ReceptionProduitSerializer(serializers.ModelSerializer):
     lignes = ReceptionLigneSerializer(many=True)
 
@@ -235,7 +272,18 @@ class ReceptionProduitSerializer(serializers.ModelSerializer):
             produit.quantite += nombre_plaquettes
             produit.save()
 
+            # ✅ Création automatique du lot
+            from pharmacie.models import LotProduitPharmacie  # si pas déjà importé
+
+            LotProduitPharmacie.objects.create(
+                produit=produit,
+                quantite=nombre_plaquettes,
+                date_peremption=date.today() + timedelta(days=365)  # 1 an par défaut
+                # numero_lot, prix_achat, prix_vente seront gérés automatiquement dans le modèle
+            )
+
         return reception
+
 
 ###############################################
 class CommandeProduitLigneDetailSerializer(serializers.ModelSerializer):
@@ -378,24 +426,24 @@ class VenteProduitSerializer(serializers.ModelSerializer):
         return data
 
     @transaction.atomic
+
     def create(self, validated_data):
         lignes_data = validated_data.pop('lignes')
         client = validated_data.pop('client', None)
-        
-        # Création de la vente
+
         vente = VenteProduit.objects.create(
             client=client,
             **validated_data
         )
 
         total_vente = 0
-        
+
         for ligne_data in lignes_data:
             produit = ligne_data['produit']
             quantite = ligne_data['quantite']
             prix_unitaire = produit.prix_vente
             total_ligne = quantite * prix_unitaire
-            
+
             # Création de la ligne de vente
             VenteLigne.objects.create(
                 vente=vente,
@@ -404,22 +452,35 @@ class VenteProduitSerializer(serializers.ModelSerializer):
                 prix_unitaire=prix_unitaire,
                 total=total_ligne
             )
-            
-            # Mise à jour du stock
+
+            # ✅ Réduction du stock global
             produit.quantite -= quantite
             produit.save()
-            
+
+            # ✅ Réduction du stock dans les lots FIFO
+            quantite_restante = quantite
+            lots = produit.lots.filter(quantite__gt=0).order_by('date_entree')
+
+            for lot in lots:
+                if quantite_restante <= 0:
+                    break
+
+                quantite_a_retirer = min(lot.quantite, quantite_restante)
+                lot.quantite -= quantite_a_retirer
+                lot.save()
+
+                quantite_restante -= quantite_a_retirer
+
             total_vente += total_ligne
-        
-        # Mise à jour du montant total
+
         vente.montant_total = total_vente
         vente.save(update_fields=['montant_total'])
-        
-        # Mise à jour des stats du client si existant
+
         if client:
             client.update_stats()
-        
+
         return vente
+
 
 ########################### CLIENT ET TOUT C QUI LUI CONCERNE################################
 from rest_framework import serializers
@@ -534,7 +595,7 @@ from .models import ProduitPharmacie,Requisition
 from rest_framework import serializers
 from datetime import datetime
 from django.db.models import Sum, F, DecimalField
-from .models import VenteProduit, VenteLigne, RendezVous
+from .models import VenteProduit, VenteLigne, RendezVous, PublicitePharmacie
 
 class StatistiquesDuJourSerializer(serializers.Serializer):
     chiffre_affaire = serializers.DecimalField(max_digits=12, decimal_places=2)
@@ -598,3 +659,12 @@ class RendezVousSerializer(serializers.ModelSerializer):
     class Meta:
         model = RendezVous
         fields = '__all__'
+
+#######PUBLICITE #############
+# serializers.py
+class PubliciteSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField(use_url=True)
+
+    class Meta:
+        model = PublicitePharmacie
+        fields = ['image', 'description', 'date_debut', 'date_fin']

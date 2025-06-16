@@ -2,6 +2,9 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone
 from django.db import models
+from django.db import models
+
+from django.db import models
 
 class Pharmacie(models.Model):
     nom_pharm = models.CharField(max_length=100, verbose_name="Nom de la pharmacie")
@@ -14,12 +17,24 @@ class Pharmacie(models.Model):
     telephone = models.CharField(max_length=20, verbose_name="Téléphone")
     logo_pharm = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
 
+    # Géolocalisation
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+
+    # Montant mensuel
+    montant_mensuel = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="Montant mensuel à payer",
+        default=0.00
+    )
+
+    # Activation
+    is_active = models.BooleanField(default=True, verbose_name="Pharmacie active ?")
+
     def __str__(self):
         return self.nom_pharm
 
-    class Meta:
-        verbose_name = "Pharmacie"
-        verbose_name_plural = "Pharmacies"
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, username, password=None, **extra_fields):

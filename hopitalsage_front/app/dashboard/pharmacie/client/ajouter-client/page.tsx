@@ -44,7 +44,7 @@ export default function CreerClient() {
     }
     
     try {
-      const response = await axios.post('https://pharmacie-hefk.onrender.com/api/clients/', 
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/clients/`, 
         dataToSend,
         {
           headers: { 

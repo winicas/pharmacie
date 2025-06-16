@@ -76,6 +76,9 @@ class ProduitPharmacie(models.Model):
     prix_vente = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
     def save(self, *args, **kwargs):
+
+        
+
         try:
             nb_plaquettes = self.produit_fabricant.nombre_plaquettes_par_boite
             prix_boite = self.produit_fabricant.prix_achat
@@ -96,6 +99,56 @@ class ProduitPharmacie(models.Model):
 
     def __str__(self):
         return f"{self.nom_medicament} - {self.pharmacie.nom}"
+
+from decimal import Decimal
+import string
+import random
+
+from django.db import models
+import string
+import random
+
+class LotProduitPharmacie(models.Model):
+    produit = models.ForeignKey(
+        'ProduitPharmacie',
+        on_delete=models.CASCADE,
+        related_name='lots'
+    )
+    numero_lot = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        unique=True,  # pour éviter les doublons
+        help_text="Numéro du lot (fourni par le fournisseur ou généré automatiquement)"
+    )
+    date_peremption = models.DateField()
+    date_entree = models.DateField(auto_now_add=True)
+    quantite = models.PositiveIntegerField()
+
+    prix_achat = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    prix_vente = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        # ✅ Génère automatiquement un numéro de lot si vide
+        if not self.numero_lot:
+            caracteres = string.ascii_letters + string.digits + "!@#$%&*"
+            while True:
+                aleatoire = ''.join(random.choices(caracteres, k=10))
+                candidate = f"lot-{aleatoire}"
+                if not LotProduitPharmacie.objects.filter(numero_lot=candidate).exists():
+                    self.numero_lot = candidate
+                    break
+
+        # ✅ Copie les prix du produit s'ils ne sont pas définis
+        if self.prix_achat is None:
+            self.prix_achat = self.produit.prix_achat
+        if self.prix_vente is None:
+            self.prix_vente = self.produit.prix_vente
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.produit.nom_medicament} | Lot: {self.numero_lot or 'N/A'} | Péremption: {self.date_peremption} | Qté: {self.quantite}"
 
 class CommandeProduit(models.Model):
     pharmacie = models.ForeignKey(Pharmacie, on_delete=models.CASCADE  )
@@ -272,3 +325,17 @@ class RendezVous(models.Model):
 
     def __str__(self):
         return f"{self.client} - {self.date} à {self.heure} ({self.statut})"
+
+######### PUBLICITE DE MEDICAMENT ###################
+# models.py
+class PublicitePharmacie(models.Model):
+    image = models.ImageField(upload_to='publicites/')
+    description = models.TextField()
+    date_debut = models.DateField()
+    date_fin = models.DateField()
+
+    def __str__(self):
+        return f"Publicité ({self.date_debut} → {self.date_fin})"
+    
+    class Meta:
+        ordering = ['-date_debut']

@@ -23,7 +23,7 @@ export default function RapportGeneral() {
     const token = localStorage.getItem('accessToken');
     if (token) {
       setLoading(true);
-      fetch(`https://pharmacie-hefk.onrender.com/api/rapport-general/?periode=${periode}`, {
+      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/rapport-general/?periode=${periode}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

@@ -43,16 +43,33 @@ from .models import Pharmacie, User
 from .serializers import PharmacieSerializer, UserSerializer
 from rest_framework.views import APIView
 
+# views.py
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from .models import Pharmacie
+from .serializers import PharmacieSerializer
+from rest_framework.permissions import IsAuthenticated
+
 class PharmacieViewSet(viewsets.ModelViewSet):
     queryset = Pharmacie.objects.all()
     serializer_class = PharmacieSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        ville = self.request.query_params.get('ville')
-        if ville:
-            return Pharmacie.objects.filter(ville_pharm=ville)
-        return super().get_queryset()
+    @action(detail=True, methods=['post'])
+    def activer(self, request, pk=None):
+        pharmacie = self.get_object()
+        pharmacie.is_active = True
+        pharmacie.save()
+        return Response({'status': 'pharmacie activée'}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def desactiver(self, request, pk=None):
+        pharmacie = self.get_object()
+        pharmacie.is_active = False
+        pharmacie.save()
+        return Response({'status': 'pharmacie désactivée'}, status=status.HTTP_200_OK)
+
 class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]
 

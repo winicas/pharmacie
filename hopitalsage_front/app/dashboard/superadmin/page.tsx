@@ -12,6 +12,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { motion } from 'framer-motion';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 interface Pharmacie {
   id: number;
@@ -24,10 +26,14 @@ interface Pharmacie {
   ni: string;
   telephone: string;
   logo?: string;
+  is_active: boolean;
 }
+
+const ITEMS_PER_PAGE = 5;
 
 const SuperAdminDashboard = () => {
   const [pharmacies, setPharmacies] = useState<Pharmacie[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<{
     fullName: string;
@@ -48,31 +54,21 @@ const SuperAdminDashboard = () => {
 
     const fetchPharmacies = async () => {
       const accessToken = localStorage.getItem('accessToken');
-      if (!accessToken) {
-        console.error('Aucun token trouvé !');
-        return;
-      }
+      if (!accessToken) return;
 
       try {
-        const response = await fetch('https://pharmacie-hefk.onrender.com/api/pharmacies/', { // ← Ajout du slash final
-          method: 'GET',
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacies/`, {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${accessToken}`,
           },
         });
 
-        if (response.status === 401) {
-          console.error('Non autorisé : Token invalide ou expiré');
-          return;
-        }
-
         const data = await response.json();
-        // Protection si la réponse ne contient pas le tableau attendu
         setPharmacies(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error('Erreur de chargement des pharmacies :', error);
-        setPharmacies([]); // Réinitialiser à un tableau vide
+        toast.error('Erreur de chargement des pharmacies');
+        setPharmacies([]);
       } finally {
         setLoading(false);
       }
@@ -80,6 +76,69 @@ const SuperAdminDashboard = () => {
 
     fetchPharmacies();
   }, []);
+
+  const handleDelete = async (id: number, name: string) => {
+    const confirmDelete = confirm(`Voulez-vous vraiment supprimer "${name}" ?`);
+    if (!confirmDelete) return;
+
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) return;
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacies/${id}/`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (response.ok) {
+        toast.success(`Pharmacie "${name}" supprimée`);
+        setPharmacies((prev) => prev.filter((p) => p.id !== id));
+      } else {
+        toast.error('Échec de la suppression');
+      }
+    } catch (error) {
+      toast.error('Erreur réseau lors de la suppression');
+    }
+  };
+
+  const handleToggleActivation = async (id: number, isActive: boolean) => {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) return;
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacies/${id}/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ is_active: !isActive }),
+      });
+
+      if (response.ok) {
+        toast.success(`Pharmacie ${!isActive ? 'activée' : 'désactivée'}`);
+        setPharmacies((prev) =>
+          prev.map((p) =>
+            p.id === id ? { ...p, is_active: !isActive } : p
+          )
+        );
+      } else {
+        toast.error('Erreur lors de la mise à jour');
+      }
+    } catch (error) {
+      toast.error('Erreur réseau');
+    }
+  };
+
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const currentPharmacies = pharmacies.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(pharmacies.length / ITEMS_PER_PAGE);
+
+  const paginate = (page: number) => {
+    setCurrentPage(page);
+  };
 
   if (loading || !user) {
     return (
@@ -96,19 +155,14 @@ const SuperAdminDashboard = () => {
 
   return (
     <div className="flex flex-col sm:flex-row min-h-screen bg-gray-100 dark:bg-zinc-950">
-      {/* Sidebar */}
+      <ToastContainer />
       <SidebarAdmin userRole={user.role} />
-
-      {/* Contenu Principal */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
         <HeaderAdmin
           userFullName={user.fullName}
           profilePictureUrl={user.profilePictureUrl}
           role={user.role}
         />
-
-        {/* Section Principale */}
         <main className="p-4 sm:p-6 space-y-6">
           <motion.h1
             initial={{ opacity: 0, y: -20 }}
@@ -119,36 +173,32 @@ const SuperAdminDashboard = () => {
             Tableau de Bord SuperAdmin
           </motion.h1>
 
-          {/* Boutons d'actions */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6"
           >
-            {/* Bouton Créer Pharmacie */}
             <motion.div
               whileHover={{ scale: 1.05 }}
-              className="card shadow-lg border-0 p-6 bg-white dark:bg-zinc-800 rounded-xl overflow-hidden"
+              className="card shadow-lg border-0 p-6 bg-white dark:bg-zinc-800 rounded-xl"
             >
-              <h5 className="card-title text-xl font-bold text-[#007BFF]">
+              <h5 className="text-xl font-bold text-[#007BFF]">
                 Créer Pharmacie
               </h5>
-              <p className="card-text text-gray-600 dark:text-gray-300">
+              <p className="text-gray-600 dark:text-gray-300">
                 Ajoutez une nouvelle pharmacie au système.
               </p>
               <a
                 href="/dashboard/superadmin/create_pharmacie"
-                className="btn btn-primary block mt-4 py-2 px-4 rounded-md bg-[#007BFF] text-white hover:bg-[#0056b3] transition-colors"
+                className="block mt-4 py-2 px-4 rounded-md bg-[#007BFF] text-white hover:bg-[#0056b3] transition-colors"
               >
                 Créer Pharmacie
               </a>
             </motion.div>
-
-            {/* Ajoutez d'autres boutons ici (ex: Gérer utilisateurs) */}
           </motion.div>
 
-          {/* Liste des pharmacies */}
+          {/* Liste */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -171,8 +221,8 @@ const SuperAdminDashboard = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pharmacies.length > 0 ? (
-                  pharmacies.map((pharmacie) => (
+                {currentPharmacies.length > 0 ? (
+                  currentPharmacies.map((pharmacie) => (
                     <TableRow key={pharmacie.id}>
                       <TableCell>{pharmacie.nom_pharm}</TableCell>
                       <TableCell>{pharmacie.commune_pharm}</TableCell>
@@ -180,22 +230,28 @@ const SuperAdminDashboard = () => {
                       <TableCell>{pharmacie.telephone}</TableCell>
                       <TableCell>{pharmacie.rccm}</TableCell>
                       <TableCell>{pharmacie.idnat}</TableCell>
-                      <TableCell>
+                      <TableCell className="space-y-1 space-x-1">
                         <a
                           href={`/dashboard/superadmin/edit-pharmacie/${pharmacie.id}`}
-                          className="btn btn-warning mr-2 py-1 px-2 rounded-md bg-[#FFC107] text-white hover:bg-[#e0a800] transition-colors"
+                          className="inline-block py-1 px-2 rounded-md bg-[#FFC107] text-white hover:bg-[#e0a800]"
                         >
                           Modifier
                         </a>
                         <button
-                          onClick={() =>
-                            confirm(
-                              `Êtes-vous sûr de vouloir supprimer ${pharmacie.nom_pharm}?`
-                            )
-                          }
-                          className="btn btn-danger py-1 px-2 rounded-md bg-[#DC3545] text-white hover:bg-[#bd2130] transition-colors"
+                          onClick={() => handleDelete(pharmacie.id, pharmacie.nom_pharm)}
+                          className="inline-block py-1 px-2 rounded-md bg-[#DC3545] text-white hover:bg-[#bd2130]"
                         >
                           Supprimer
+                        </button>
+                        <button
+                          onClick={() => handleToggleActivation(pharmacie.id, pharmacie.is_active)}
+                          className={`inline-block py-1 px-2 rounded-md ${
+                            pharmacie.is_active
+                              ? 'bg-gray-500 hover:bg-gray-700'
+                              : 'bg-green-600 hover:bg-green-800'
+                          } text-white`}
+                        >
+                          {pharmacie.is_active ? 'Désactiver' : 'Activer'}
                         </button>
                       </TableCell>
                     </TableRow>
@@ -209,6 +265,23 @@ const SuperAdminDashboard = () => {
                 )}
               </TableBody>
             </Table>
+
+            {/* Pagination */}
+            <div className="flex justify-center mt-4 space-x-2">
+              {Array.from({ length: totalPages }, (_, i) => (
+                <button
+                  key={i}
+                  onClick={() => paginate(i + 1)}
+                  className={`px-3 py-1 rounded ${
+                    currentPage === i + 1
+                      ? 'bg-[#007BFF] text-white'
+                      : 'bg-gray-200 hover:bg-gray-300'
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
           </motion.div>
         </main>
       </div>

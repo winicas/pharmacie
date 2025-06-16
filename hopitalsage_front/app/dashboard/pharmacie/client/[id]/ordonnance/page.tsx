@@ -44,7 +44,7 @@ export default async function OrdonnancePatientPage({ params }: PageProps) {
   useEffect(() => {
     if (accessToken) {
       // Récupère la pharmacie de l'utilisateur
-      axios.get('https://pharmacie-hefk.onrender.com/api/pharmacie/', {
+      axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacie/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
         .then((res) => {
@@ -58,7 +58,7 @@ export default async function OrdonnancePatientPage({ params }: PageProps) {
   }, [accessToken]);
 
   const loadProduits = (pharmacieId: number) => {
-    axios.get(`https://pharmacie-hefk.onrender.com/api/produits-pharmacie/?pharmacie=${pharmacieId}`, {
+    axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits-pharmacie/?pharmacie=${pharmacieId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
       .then(res => {
@@ -88,7 +88,7 @@ export default async function OrdonnancePatientPage({ params }: PageProps) {
     };
 
     try {
-      await axios.post(`https://pharmacie-hefk.onrender.com/api/clients/${id}/ordonnance/`, payload, {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/clients/${id}/ordonnance/`, payload, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },

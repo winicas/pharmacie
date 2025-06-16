@@ -119,7 +119,7 @@ const Page = () => {
   const fetchComptables = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("https://pharmacie-hefk.onrender.com/api/comptables/", authHeader);
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/comptables/`, authHeader);
       setComptables(res.data);
       setError(null);
     } catch {
@@ -138,7 +138,7 @@ const Page = () => {
     setError(null);
     try {
       setLoading(true);
-      await axios.post("https://pharmacie-hefk.onrender.com/api/comptables/", formData, authHeader);
+      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/comptables/`, formData, authHeader);
       setFormData({
         username: "",
         first_name: "",
@@ -158,7 +158,7 @@ const Page = () => {
   const toggleActive = async (id: number, currentState: boolean) => {
     try {
       await axios.patch(
-        `https://pharmacie-hefk.onrender.com/api/comptables/${id}/`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/comptables/${id}/`,
         { is_active: !currentState },
         authHeader
       );

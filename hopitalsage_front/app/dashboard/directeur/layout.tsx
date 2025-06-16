@@ -1,7 +1,6 @@
-// app/dashboard/pharmacie/layout.tsx
 'use client';
 
-import SidebarComptable from '@/components/SidebarPharmacie';
+import SidebarPharmacie from '@/components/SidebarPharmacie';
 import HeaderComptable from '@/components/HeaderComptable';
 import { ReactNode, useEffect, useState } from 'react';
 
@@ -31,23 +30,17 @@ export default function PharmacieLayout({ children }: { children: ReactNode }) {
     const token = localStorage.getItem('accessToken');
 
     if (token) {
-      fetch('https://pharmacie-hefk.onrender.com/api/pharmacie/', {
+      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacie/`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       })
         .then(res => res.json())
-        .then(data => setUser(data))
-        .catch(err => console.error('Erreur user:', err));
-
-      fetch('https://pharmacie-hefk.onrender.com/api/pharmacie/', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-        .then(res => res.json())
-        .then(data => setPharmacie(data))
-        .catch(err => console.error('Erreur pharmacie:', err));
+        .then(data => {
+          setUser(data);
+          setPharmacie(data);
+        })
+        .catch(err => console.error('Erreur récupération:', err));
     }
   }, []);
 
@@ -56,17 +49,18 @@ export default function PharmacieLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="flex h-screen overflow-hidden bg-gray-100 dark:bg-gray-900">
       {/* Sidebar */}
-      <div className="w-64">
-        <SidebarComptable />
+      <div className="w-72 bg-emerald-700 flex-shrink-0 overflow-y-auto">
+        <SidebarPharmacie />
       </div>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col">
+      {/* Main area */}
+      <div className="flex flex-col flex-1 overflow-hidden">
         <HeaderComptable user={user} pharmacie={pharmacie} />
-
-        <main className="flex-1 p-4 overflow-y-auto">{children}</main>
+        <main className="flex-1 overflow-y-auto p-4">
+          {children}
+        </main>
       </div>
     </div>
   );

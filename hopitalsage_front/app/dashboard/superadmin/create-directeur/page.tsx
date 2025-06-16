@@ -24,7 +24,7 @@ export default function CreateDirector() {
     try {
       const token = localStorage.getItem('accessToken');
       const response = await axios.get(
-        'https://pharmacie-hefk.onrender.com/api/pharmacies/',
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacies/`,
         {
           headers: {
             'Content-Type': 'application/json',
@@ -53,7 +53,7 @@ export default function CreateDirector() {
       }
 
       const response = await fetch(
-        `https://pharmacie-hefk.onrender.com/api/create-director/${pharmacieId}/`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/create-director/${pharmacieId}/`,
         {
           method: 'POST',
           headers: {
