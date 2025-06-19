@@ -595,7 +595,7 @@ from .models import ProduitPharmacie,Requisition
 from rest_framework import serializers
 from datetime import datetime
 from django.db.models import Sum, F, DecimalField
-from .models import VenteProduit, VenteLigne, RendezVous, PublicitePharmacie
+from .models import VenteProduit, VenteLigne, RendezVous, PublicitePharmacie, DepotPharmaceutique
 
 class StatistiquesDuJourSerializer(serializers.Serializer):
     chiffre_affaire = serializers.DecimalField(max_digits=12, decimal_places=2)
@@ -662,9 +662,27 @@ class RendezVousSerializer(serializers.ModelSerializer):
 
 #######PUBLICITE #############
 # serializers.py
+
 class PubliciteSerializer(serializers.ModelSerializer):
     image = serializers.ImageField(use_url=True)
 
     class Meta:
         model = PublicitePharmacie
         fields = ['image', 'description', 'date_debut', 'date_fin']
+
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        request = self.context.get('request')
+        if request and rep['image']:
+            rep['image'] = request.build_absolute_uri(rep['image'])
+        return rep
+
+class DepotPharmaceutiqueSerializer(serializers.ModelSerializer):
+    fabricant = serializers.PrimaryKeyRelatedField(queryset=Fabricant.objects.all())
+
+    class Meta:
+        model = DepotPharmaceutique
+        fields = [
+            'id', 'fabricant', 'nom_depot', 'ville', 'commune',
+            'quartier', 'adresse_complete', 'latitude', 'longitude', 'telephone'
+        ]

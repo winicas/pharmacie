@@ -39,7 +39,10 @@ RendezVousListCreateView,
 RendezVousByClientView,
 clients_avec_rendezvous,
 LotProduitPharmacieViewSet,
-PubliciteActuelleView
+PubliciteActuelleView,
+PubliciteUploadView,
+CreateDepotPharmaceutiqueView,
+LogoutAPIView
 
 
 
@@ -69,9 +72,12 @@ urlpatterns = [
     path('api/copier-usb/', copier_vers_usb, name='copier_vers_usb'),
     path('api/produits/<int:fabricant_id>/', produits_par_fabricants, name='api_produits_fabricant'),
     path('api/produit/<int:produit_id>/modifier/', modifier_prix_produit, name='api_modifier_prix'),
-    path('api/publicite-active/', PubliciteActuelleView.as_view()),
-    path('api/requisitions/delete_all/', delete_all_requisitions, name='delete_all_requisitions'),
+    path('api/publicite-active/', PubliciteActuelleView.as_view(), name='publicite-active'),
+    path('api/publicite-upload/', PubliciteUploadView.as_view(), name='publicite-upload'),
+    path('api/logout/', LogoutAPIView.as_view(), name='custom_logout'),
 
+    path('api/requisitions/delete_all/', delete_all_requisitions, name='delete_all_requisitions'),
+    path('api/depots/create/', CreateDepotPharmaceutiqueView.as_view(), name='create-depot'),
 
     # Produits par fabricant
     path('api/produits-fabricant/', produits_par_fabricant, name='produits-par-fabricant'),

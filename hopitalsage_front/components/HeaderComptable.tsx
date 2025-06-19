@@ -41,17 +41,28 @@ const HeaderPharmacie = ({ pharmacie, user }: HeaderPharmacieProps) => {
     clientUser: useRef<HTMLDivElement>(null),
   };
 
-  const handleLogout = async () => {
-    const refreshToken = localStorage.getItem("refreshToken");
-    try {
-      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/login/`, { refresh: refreshToken });
-    } catch (error) {
-      console.error("Erreur de déconnexion :", error);
+const handleLogout = async () => {
+  const refreshToken = localStorage.getItem("refreshToken");
+
+  try {
+    if (refreshToken) {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/logout/`, {
+        refresh: refreshToken,
+      }, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`
+        }
+      });
     }
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    router.push("/login");
-  };
+  } catch (error) {
+    console.error("Erreur de déconnexion :", error);
+  }
+
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+  router.push("/login");
+};
+
 
   const toggleExpand = (label: string) => {
     setExpandedMenus(prev => ({ ...prev, [label]: !prev[label] }));
