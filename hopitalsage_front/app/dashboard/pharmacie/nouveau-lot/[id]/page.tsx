@@ -1,13 +1,17 @@
+// app/dashboard/pharmacie/nouveau-lot/[id]/page.tsx
+
 interface PageProps {
-  params: { id: string };
+  params: {
+    id: string
+  }
 }
 
 export default function Page({ params }: PageProps) {
-  const produitId = parseInt(params.id, 10);
+  const { id } = params;
 
   return (
     <div>
-      ID du produit : {produitId}
+      <h1>Détail du lot avec l’ID : {id}</h1>
     </div>
   );
 }
