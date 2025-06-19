@@ -1,4 +1,4 @@
-// app/dashboard/pharmacie/nouveau-lot/[id]/page.tsx
+// app/dashboard/pharmacsssie/nouveau-lot/[id]/page.tsx
 
 export default function Page({ params }: { params: { id: string } }) {
   const id = params.id
