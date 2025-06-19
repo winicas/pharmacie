@@ -1,5 +1,4 @@
-// page.tsx dans /dashboard/produit/[id]/
-import { use } from 'react';
+// app/dashboard/produit/[id]/page.tsx
 
 interface PageProps {
   params: { id: string };
