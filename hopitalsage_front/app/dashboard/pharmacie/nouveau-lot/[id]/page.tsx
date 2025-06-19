@@ -1,11 +1,9 @@
-// app/dashboard/produit/[id]/page.tsx
-
 interface PageProps {
   params: { id: string };
 }
 
 export default function Page({ params }: PageProps) {
-  const produitId = parseInt(params.id);
+  const produitId = parseInt(params.id, 10);
 
   return (
     <div>
