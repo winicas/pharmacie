@@ -48,7 +48,8 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 CORS_ALLOWED_ORIGINS = [
-    "https://nicapharmtechnologie.onrender.com",
+    "http://localhost:3000",        # Ton Next.js
+    "http://localhost:5000",        # Si Electron charge depuis un autre port
 ]
 # Ajoutez ceci pour gérer les fichiers statiques en production
 STATIC_URL = '/static/'
