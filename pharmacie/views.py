@@ -1,6 +1,6 @@
 from rest_framework import viewsets
-from .models import Fabricant, ProduitFabricant
-from .serializers import FabricantSerializer, ProduitFabricantSerializer
+from .models import Fabricant, ProduitFabricant,TauxChange
+from .serializers import FabricantSerializer,ProduitFabricant, ProduitFabricantSerializer, TauxChangeSerializer
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 
@@ -20,19 +20,12 @@ class ProduitFabricantViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save()
 
-# views.py
-from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
-from .models import TauxChange
-from .serializers import TauxChangeSerializer
-
 class TauxChangeViewSet(viewsets.ModelViewSet):
     queryset = TauxChange.objects.all().order_by('-date')  # Le plus récent en haut
     serializer_class = TauxChangeSerializer
     permission_classes = [IsAuthenticated]
 
 #################Enregistrement des nouvelle medicament##############
-# medicamentsn/views.py
 from rest_framework import viewsets, permissions
 from .models import ProduitPharmacie
 from .serializers import ProduitPharmacieSerializer
@@ -992,8 +985,16 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import PublicitePharmacie
 from .serializers import PubliciteSerializer
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated  # facultatif mais conseillé
 
+# Pour afficher la publicité active (GET uniquement)
 class PubliciteActuelleView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
         aujourd_hui = date.today()
         pub = PublicitePharmacie.objects.filter(
@@ -1002,7 +1003,61 @@ class PubliciteActuelleView(APIView):
         ).order_by('-date_debut').first()
 
         if not pub:
-            return Response({"image": "", "description": "", "date_debut": "", "date_fin": ""})
-        
+            return Response({
+                "image": "",
+                "description": "",
+                "date_debut": "",
+                "date_fin": ""
+            })
+
         serializer = PubliciteSerializer(pub, context={"request": request})
         return Response(serializer.data)
+
+
+class PubliciteUploadView(APIView):
+    parser_classes = [MultiPartParser, FormParser]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = PubliciteSerializer(data=request.data, context={"request": request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Publicité enregistrée avec succès"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .serializers import DepotPharmaceutiqueSerializer
+from .models import DepotPharmaceutique
+
+class CreateDepotPharmaceutiqueView(APIView):
+    def post(self, request):
+        serializer = DepotPharmaceutiqueSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken, TokenError
+
+class LogoutAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        refresh_token = request.data.get("refresh")
+
+        if refresh_token is None:
+            return Response({"error": "Le token refresh est requis."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response({"message": "Déconnexion réussie."}, status=status.HTTP_205_RESET_CONTENT)
+        except TokenError as e:
+            return Response({"error": f"Token invalide ou déjà blacklisté : {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)

@@ -9,6 +9,30 @@ class Fabricant(models.Model):
     def __str__(self):
         return self.nom
 
+from django.db import models
+
+class Fabricant(models.Model):
+    nom = models.CharField(max_length=255)
+    pays_origine = models.CharField(max_length=100, blank=True, null=True)
+
+    def __str__(self):
+        return self.nom
+
+class DepotPharmaceutique(models.Model):
+    fabricant = models.ForeignKey(Fabricant, on_delete=models.CASCADE, related_name='depots')
+    nom_depot = models.CharField(max_length=255)
+    ville = models.CharField(max_length=255)
+    commune = models.CharField(max_length=255)
+    quartier = models.CharField(max_length=255)
+    adresse_complete = models.TextField()
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
+    telephone = models.CharField(max_length=20, blank=True, null=True)  # téléphone optionnel
+
+    def __str__(self):
+        return f"{self.nom_depot} - {self.fabricant.nom}"
+
+
 # 2. Produit générique par fabricant
 from django.db import models
 

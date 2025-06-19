@@ -11,31 +11,15 @@
       "static/chunks/main-app.js",
       "static/chunks/app/not-found.js"
     ],
-    "/dashboard/pharmacie/commade-chez-fournisseur/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/pharmacie/commade-chez-fournisseur/page.js"
-    ],
-    "/_not-found/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
-    ],
     "/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/login/page.js"
     ],
-    "/dashboard/superadmin/page": [
+    "/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/css/app/dashboard/superadmin/page.css",
-      "static/chunks/app/dashboard/superadmin/page.js"
-    ],
-    "/dashboard/superadmin/publicite/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/superadmin/publicite/page.js"
+      "static/chunks/app/page.js"
     ],
     "/dashboard/directeur/layout": [
       "static/chunks/webpack.js",
@@ -46,16 +30,6 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/directeur/page.js"
-    ],
-    "/dashboard/pharmacie/nouvel-medicament-pharmacie/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/pharmacie/nouvel-medicament-pharmacie/page.js"
-    ],
-    "/dashboard/pharmacie/produit-perimer/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/pharmacie/produit-perimer/page.js"
     ]
   }
 }
