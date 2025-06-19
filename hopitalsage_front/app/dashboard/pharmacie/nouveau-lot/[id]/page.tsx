@@ -1,12 +1,6 @@
 // app/dashboard/pharmacie/nouveau-lot/[id]/page.tsx
 
-interface PageProps {
-  params: {
-    id: string
-  }
-}
-
-export default function Page({ params }: PageProps) {
+export default function Page({ params }: { params: { id: string } }) {
   const { id } = params;
 
   return (
