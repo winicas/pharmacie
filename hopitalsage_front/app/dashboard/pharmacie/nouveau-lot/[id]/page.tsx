@@ -10,8 +10,9 @@ export default function Page({ params }: PageProps) {
   const { id } = params;
 
   return (
-    <div>
-      <h1>Détail du lot avec l’ID : {id}</h1>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold">Modifier le lot {id}</h1>
+      {/* Ton formulaire ou affichage ici */}
     </div>
   );
 }
