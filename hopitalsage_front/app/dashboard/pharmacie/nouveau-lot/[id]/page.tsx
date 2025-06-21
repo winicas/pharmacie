@@ -1,14 +1,10 @@
-// app/dashboard/pharmacie/nouveau-lot/[id]/page.tsx
-export const dynamic = 'force-dynamic';
+'use client';
 
-interface Props {
-  params: {
-    id: string;
-  };
-}
+import { useRouter } from 'next/router';
 
-export default function Page({ params }: Props) {
-  const { id } = params;
+export default function Page() {
+  const router = useRouter();
+  const { id } = router.query;
 
   return (
     <div className="p-6">
