@@ -159,7 +159,7 @@ LOGGING = {
     },
 }
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
+# https://docs.djangoprojsggdjhsgsject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
 
