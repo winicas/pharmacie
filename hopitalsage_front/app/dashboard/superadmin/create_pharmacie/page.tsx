@@ -5,6 +5,8 @@ import Head from 'next/head';
 
 export default function CreerPharmacie() {
   const router = useRouter();
+
+  // Valeur par défaut pour latitude/longitude (ex: Kinshasa)
   const [formData, setFormData] = useState({
     nom_pharm: '',
     ville_pharm: '',
@@ -14,41 +16,16 @@ export default function CreerPharmacie() {
     idnat: '',
     ni: '',
     telephone: '',
-    latitude: null,
-    longitude: null,
+    latitude: -1.2921,     // <-- valeur par défaut
+    longitude: 36.8219,    // <-- valeur par défaut
     montant_mensuel: '',
   });
 
- useEffect(() => {
-  if (navigator.geolocation) {
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        setFormData((prev) => ({
-          ...prev,
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        }));
-      },
-      (error) => {
-        console.error('Erreur de géolocalisation :', error);
-      },
-      
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    );
-
-    // Nettoyer le watcher quand le composant est démonté
-    return () => {
-      navigator.geolocation.clearWatch(watchId);
-    };
-  } else {
-    console.error('Géolocalisation non supportée');
-  }
-}, []);
-
+  // Tu peux garder ce useEffect vide ou le supprimer si tu n'as plus besoin de géoloc
+  useEffect(() => {
+    // Optionnel : afficher un message pour dire qu'on est en mode "défaut"
+    console.log("Mode test : Coordonnées par défaut utilisées");
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,9 +107,9 @@ export default function CreerPharmacie() {
 
           {/* Coordonnées GPS affichées en lecture seule */}
           <div className="text-sm text-gray-500 mb-2">
-            📍 Position GPS détectée :
+            📍 Position GPS utilisée :
             <br />
-            Latitude : {formData.latitude ?? '...'} / Longitude : {formData.longitude ?? '...'}
+            Latitude : {formData.latitude} / Longitude : {formData.longitude}
           </div>
 
           <button

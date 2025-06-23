@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
-
+import HeaderAdmin from '../HeaderAdmin'
 
 interface User {
   id: number
@@ -89,17 +89,30 @@ export default function CreateProduit() {
       setFabricantId('')
       setNombrePlaquettes('')
       setSuccess(true)
-    } catch (error: any) {
-      console.error('Erreur création produit', error)
+    }  catch (error: any) {
+  console.error('Erreur création produit', error)
 
-      if (error.response?.data?.non_field_errors?.length) {
-        setErrorMessage(error.response.data.non_field_errors[0])
-      } else if (error.response?.data?.detail) {
-        setErrorMessage(error.response.data.detail)
-      } else {
-        setErrorMessage("Erreur lors de l'enregistrement du produit.")
-      }
-    }
+  const data = error?.response?.data
+
+  if (data?.nom?.length) {
+    setErrorMessage(data.nom[0])
+  } else if (data?.non_field_errors?.length) {
+    setErrorMessage(data.non_field_errors[0])
+  } else if (typeof data === 'string') {
+    setErrorMessage(data)
+  } else if (data?.detail) {
+    setErrorMessage(data.detail)
+  } else if (typeof data === 'object') {
+    const messages = Object.entries(data)
+      .map(([k, v]: [string, any]) => `${k} : ${Array.isArray(v) ? v[0] : v}`)
+      .join('\n')
+    setErrorMessage(messages)
+  } else {
+    setErrorMessage("Erreur inconnue.")
+  }
+}
+
+
   }
 
   if (loadingUser) {
@@ -120,7 +133,7 @@ export default function CreateProduit() {
 
   return (
     <>
-    
+      <HeaderAdmin user={userData} />
 
       <main className="container mx-auto p-6">
         <h1 className="text-2xl font-bold mb-6 text-gray-800">Ajouter un produit au fabricant</h1>

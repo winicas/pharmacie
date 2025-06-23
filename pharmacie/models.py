@@ -32,7 +32,6 @@ class DepotPharmaceutique(models.Model):
     def __str__(self):
         return f"{self.nom_depot} - {self.fabricant.nom}"
 
-
 # 2. Produit générique par fabricant
 from django.db import models
 
@@ -100,12 +99,9 @@ class ProduitPharmacie(models.Model):
     prix_vente = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
     def save(self, *args, **kwargs):
-
-        
-
         try:
             nb_plaquettes = self.produit_fabricant.nombre_plaquettes_par_boite
-            prix_boite = self.produit_fabricant.prix_achat
+            prix_boite = self.produit_fabricant.prix_achat_cdf()  # ✅ conversion correcte
 
             if nb_plaquettes and nb_plaquettes > 0:
                 prix_par_plaquette = Decimal(prix_boite) / Decimal(nb_plaquettes)
@@ -120,6 +116,7 @@ class ProduitPharmacie(models.Model):
             print(f"Erreur lors du calcul automatique : {e}")
 
         super().save(*args, **kwargs)
+
 
     def __str__(self):
         return f"{self.nom_medicament} - {self.pharmacie.nom}"
@@ -180,11 +177,30 @@ class CommandeProduit(models.Model):
     etat = models.CharField(max_length=50, default="en_attente")
     fabricant = models.ForeignKey(Fabricant, on_delete=models.CASCADE)
 
+from decimal import Decimal, ROUND_HALF_UP
+from django.db import models
+from .models import TauxChange
+
 class CommandeProduitLigne(models.Model):
-    commande = models.ForeignKey(CommandeProduit, on_delete=models.CASCADE, related_name='lignes')
-    produit_fabricant = models.ForeignKey(ProduitFabricant, on_delete=models.CASCADE)
+    commande = models.ForeignKey('CommandeProduit', on_delete=models.CASCADE, related_name='lignes')
+    produit_fabricant = models.ForeignKey('ProduitFabricant', on_delete=models.CASCADE)
     quantite_commandee = models.PositiveIntegerField()
-    prix_achat = models.DecimalField(max_digits=10, decimal_places=2)  # Ajoute ceci si manquant
+    prix_achat = models.DecimalField(max_digits=10, decimal_places=2)  # sera en CDF
+
+    def save(self, *args, **kwargs):
+        prix = self.produit_fabricant.prix_achat
+        devise = self.produit_fabricant.devise.upper()
+
+        if devise == 'USD':
+            try:
+                taux = TauxChange.objects.latest('date').taux
+                prix = Decimal(prix) * Decimal(taux)
+            except TauxChange.DoesNotExist:
+                raise ValueError("Aucun taux de change défini pour convertir le prix.")
+
+        self.prix_achat = Decimal(prix).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+        super().save(*args, **kwargs)
 
 class ReceptionProduit(models.Model):
     commande = models.ForeignKey(CommandeProduit, on_delete=models.CASCADE, related_name='receptions')

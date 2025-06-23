@@ -1,16 +1,21 @@
 // app/not-found.tsx
-import Link from 'next/link'
+'use client';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function NotFound() {
+  const router = useRouter();
+
+  useEffect(() => {
+    setTimeout(() => {
+      router.push('/');
+    }, 3000);
+  }, []);
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-      <h2 className="text-3xl font-bold text-gray-800 mb-4">404 - Page Introuvable</h2>
-      <Link 
-        href="/" 
-        className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-secondary transition-colors"
-      >
-        Retour à l'accueil
-      </Link>
+    <div className="text-center mt-32">
+      <h1 className="text-3xl font-bold text-red-500">Page introuvable</h1>
+      <p className="mt-4 text-gray-600">Vous allez être redirigé vers l’accueil.</p>
     </div>
-  )
+  );
 }

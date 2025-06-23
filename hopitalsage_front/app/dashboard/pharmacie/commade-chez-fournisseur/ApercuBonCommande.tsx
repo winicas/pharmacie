@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Document,
   Page,
@@ -12,7 +12,11 @@ import {
 } from '@react-pdf/renderer';
 import { saveAs } from 'file-saver';
 
-// Styles PDF
+interface ApercuBonCommandeProps {
+  fabricant: any;
+  lignes: any[];
+}
+
 const styles = StyleSheet.create({
   page: { padding: 30, fontSize: 10 },
   header: {
@@ -57,27 +61,33 @@ const styles = StyleSheet.create({
   total: { marginTop: 20, textAlign: 'right', fontSize: 12 },
 });
 
-const BonCommandePDF = ({ fabricant, lignes, date }) => (
+const BonCommandePDF = ({
+  fabricant,
+  lignes,
+  date,
+  nomPharmacie,
+}: {
+  fabricant: any;
+  lignes: any[];
+  date: string;
+  nomPharmacie: string;
+}) => (
   <Document>
     <Page size="A4" style={styles.page}>
-      {/* En-tête avec logo et nom pharmacie */}
       <View style={styles.header}>
         <View style={styles.logoSection}>
           <Image src="/logo.jpeg" style={styles.logo} />
-          <Text style={styles.pharmacyName}>COSMO PHARMA</Text>
+          <Text style={styles.pharmacyName}>{nomPharmacie}</Text>
         </View>
       </View>
 
-      {/* Titre principal */}
       <Text style={styles.title}>Bon de COMMANDE</Text>
 
-      {/* Info fabricant et date */}
       <View style={styles.infoSection}>
         <Text>Fabricant : {fabricant.nom}</Text>
         <Text>Date : {date}</Text>
       </View>
 
-      {/* Tableau des commandes */}
       <View style={styles.table}>
         <View style={styles.row}>
           <Text style={styles.cell}>Produit</Text>
@@ -88,9 +98,7 @@ const BonCommandePDF = ({ fabricant, lignes, date }) => (
         {lignes.map((ligne, index) => (
           <View style={styles.row} key={index}>
             <Text style={styles.cell}>{ligne.nom}</Text>
-            <Text style={styles.cell}>
-              {Number(ligne.prix_achat).toFixed(2)} Fc
-            </Text>
+            <Text style={styles.cell}>{Number(ligne.prix_achat).toFixed(2)} Fc</Text>
             <Text style={styles.cell}>{ligne.quantite}</Text>
             <Text style={styles.cell}>
               {(ligne.quantite * ligne.prix_achat).toFixed(2)} Fc
@@ -99,7 +107,6 @@ const BonCommandePDF = ({ fabricant, lignes, date }) => (
         ))}
       </View>
 
-      {/* Total */}
       <Text style={styles.total}>
         Total : {lignes.reduce((acc, l) => acc + l.quantite * l.prix_achat, 0).toFixed(2)} Fc
       </Text>
@@ -107,21 +114,61 @@ const BonCommandePDF = ({ fabricant, lignes, date }) => (
   </Document>
 );
 
-// Composant qui déclenche le téléchargement
-export default function ApercuBonCommande({ fabricant, lignes }) {
+export default function ApercuBonCommande({ fabricant, lignes }: ApercuBonCommandeProps) {
+  const [nomPharmacie, setNomPharmacie] = useState<string>('Chargement...');
   const date = new Date().toLocaleDateString();
 
   useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+          throw new Error('Token d\'authentification introuvable');
+        }
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/me/`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Vérifie et set nom de la pharmacie
+        setNomPharmacie(data.pharmacie?.nom || 'Nom pharmacie indisponible');
+      } catch (error) {
+        console.error('Erreur lors de la récupération utilisateur:', error);
+        setNomPharmacie('Pharmacie inconnue');
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
+    if (nomPharmacie === 'Chargement...') return;
+
     const generateAndDownloadPDF = async () => {
       const doc = (
-        <BonCommandePDF fabricant={fabricant} lignes={lignes} date={date} />
+        <BonCommandePDF
+          fabricant={fabricant}
+          lignes={lignes}
+          date={date}
+          nomPharmacie={nomPharmacie}
+        />
       );
+
       const blob = await pdf(doc).toBlob();
       saveAs(blob, `Bon_Commande_${fabricant.nom}_${date}.pdf`);
     };
 
     generateAndDownloadPDF();
-  }, [fabricant, lignes]);
+  }, [fabricant, lignes, nomPharmacie, date]);
 
   return (
     <div className="text-green-600 font-semibold p-4">

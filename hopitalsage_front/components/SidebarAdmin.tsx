@@ -54,6 +54,11 @@ const SidebarAdmin = ({ userRole }: SidebarProps) => {
           icon: <FaMapMarkedAlt />,
           path: '/dashboard/superadmin/carte',
         },
+        {
+          label: 'Creer mon Agent Admin',
+          icon: <FaMapMarkedAlt />,
+          path: '/dashboard/superadmin/creer-admin',
+        },
       ],
       roles: ['superuser', 'admin'],
     },

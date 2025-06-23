@@ -27,6 +27,16 @@ class ProduitFabricantSerializer(serializers.ModelSerializer):
 
     def get_prix_achat_par_plaquette(self, obj):
         return obj.prix_achat_par_plaquette
+    def validate(self, data):
+        fabricant = data.get('fabricant')
+        nom = data.get('nom')
+
+        if ProduitFabricant.objects.filter(fabricant=fabricant, nom__iexact=nom).exists():
+            raise serializers.ValidationError({
+                "nom": f"Le produit « {nom} » existe déjà pour ce fabricant."
+            })
+        return data
+
 
 # serializers.py
 from rest_framework import serializers
@@ -58,49 +68,76 @@ from .models import ProduitPharmacie, ProduitFabricant
 from rest_framework import serializers
 from .models import ProduitPharmacie, ProduitFabricant, LotProduitPharmacie
 from rest_framework import serializers
-from .models import ProduitPharmacie, TauxChange
-from .models import LotProduitPharmacie
-from datetime import date
+from decimal import Decimal, InvalidOperation
+from django.core.exceptions import ObjectDoesNotExist
+from django.utils.crypto import get_random_string
+
+from pharmacie.models import ProduitPharmacie, LotProduitPharmacie, TauxChange
+
+def generate_unique_numero_lot():
+    """Génère un numéro de lot unique du type LOT-AB12"""
+    while True:
+        numero = f"LOT-{get_random_string(4).upper()}"
+        if not LotProduitPharmacie.objects.filter(numero_lot=numero).exists():
+            return numero
 
 class ProduitPharmacieSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProduitPharmacie
         fields = '__all__'
-        read_only_fields = ['pharmacie']
+        read_only_fields = ['pharmacie', 'prix_achat', 'prix_vente']
 
     def create(self, validated_data):
-        produit_fabricant = validated_data['produit_fabricant']
-        prix_achat = produit_fabricant.prix_achat
-        devise = produit_fabricant.devise
+        try:
+            produit_fabricant = validated_data['produit_fabricant']
+            prix_achat_fabricant = Decimal(produit_fabricant.prix_achat)
+            devise = produit_fabricant.devise.upper()
 
-        # Convertir en CDF si USD
-        if devise == 'USD':
-            try:
-                taux = TauxChange.objects.latest('date').taux
-                prix_achat = prix_achat * taux
-            except TauxChange.DoesNotExist:
-                pass
+            # Conversion USD -> CDF
+            if devise == 'USD':
+                try:
+                    taux = TauxChange.objects.latest('date').taux
+                    prix_achat = prix_achat_fabricant * Decimal(taux)
+                except ObjectDoesNotExist:
+                    raise serializers.ValidationError({
+                        "prix_achat": "Aucun taux de change disponible pour convertir depuis USD."
+                    })
+            else:
+                prix_achat = prix_achat_fabricant
 
-        validated_data['prix_achat'] = prix_achat
+            validated_data['prix_achat'] = prix_achat
 
-        marge = validated_data.get('marge_beneficiaire')
-        if marge is not None:
-            validated_data['prix_vente'] = prix_achat + (prix_achat * marge / 100)
+            # Calcul du prix de vente selon la marge bénéficiaire
+            marge = validated_data.get('marge_beneficiaire')
+            if marge is not None:
+                try:
+                    prix_vente = prix_achat + (prix_achat * Decimal(marge) / 100)
+                    validated_data['prix_vente'] = prix_vente
+                except (InvalidOperation, TypeError):
+                    raise serializers.ValidationError({
+                        "marge_beneficiaire": "Marge invalide pour calcul du prix de vente."
+                    })
 
-        # ✅ Création du produit
-        produit = super().create(validated_data)
+            # ✅ Création du médicament en pharmacie
+            produit = super().create(validated_data)
 
-        # ✅ Création automatique du lot lié à ce produit
-        LotProduitPharmacie.objects.create(
-            produit=produit,
-            numero_lot='001A',
-            date_peremption=validated_data['date_peremption'],
-            quantite=validated_data['quantite'],
-            prix_achat=produit.prix_achat,
-            prix_vente=produit.prix_vente,
-        )
+            # ✅ Création du premier lot lié
+            numero_lot = generate_unique_numero_lot()
 
-        return produit
+            LotProduitPharmacie.objects.create(
+                produit=produit,
+                numero_lot=numero_lot,
+                date_peremption=validated_data['date_peremption'],
+                quantite=validated_data['quantite'],
+                prix_achat=produit.prix_achat,
+                prix_vente=produit.prix_vente,
+            )
+
+            return produit
+
+        except KeyError as e:
+            raise serializers.ValidationError({str(e): "Champ requis manquant."})
+
 # serializers.py
 from rest_framework import serializers
 from .models import LotProduitPharmacie
@@ -127,9 +164,15 @@ from rest_framework import serializers
 from .models import ProduitFabricant
 
 class ProduitsFabricantSerializer(serializers.ModelSerializer):
+    prix_achat_cdf = serializers.SerializerMethodField()
+
     class Meta:
         model = ProduitFabricant
-        fields = ['id', 'nom', 'prix_achat']
+        fields = ['id', 'nom', 'prix_achat_cdf']
+
+    def get_prix_achat_cdf(self, obj):
+        return obj.prix_achat_cdf()
+
 ######################## commande de produit chez le fourniseur########################
 from rest_framework import serializers
 from .models import CommandeProduit, CommandeProduitLigne, ProduitFabricant, Fabricant
@@ -146,6 +189,10 @@ class CommandeProduitLigneSerializer(serializers.ModelSerializer):
 
 from .models import TauxChange  # Assure-toi que c'est bien importé
 from .models import TauxChange  # Assure-toi que c'est bien importé
+from decimal import Decimal, ROUND_HALF_UP
+from rest_framework import serializers
+from pharmacie.models import TauxChange, CommandeProduit, CommandeProduitLigne
+
 class CommandeProduitSerializer(serializers.ModelSerializer):
     lignes = CommandeProduitLigneSerializer(many=True)
 
@@ -161,33 +208,65 @@ class CommandeProduitSerializer(serializers.ModelSerializer):
         if not hasattr(user, 'pharmacie') or user.pharmacie is None:
             raise serializers.ValidationError("L'utilisateur n'est pas lié à une pharmacie.")
 
-        commande = CommandeProduit.objects.create(
-            pharmacie=user.pharmacie,
-            **validated_data
-        )
+        pharmacie = user.pharmacie
+        today = date.today()
+        errors = []
+
+        for idx, ligne_data in enumerate(lignes_data):
+            produit = ligne_data['produit_fabricant']
+
+            # 🔁 Vérifie doublon de commande aujourd'hui
+            deja_commande = CommandeProduitLigne.objects.filter(
+                produit_fabricant=produit,
+                commande__pharmacie=pharmacie,
+                commande__date_commande__date=today
+            ).exists()
+
+            if deja_commande:
+                errors.append({
+                    'index': idx,
+                    'produit': produit.nom,
+                    'message': f"⚠ Le produit '{produit.nom}' a déjà été commandé aujourd’hui par votre pharmacie. Veuillez attendre demain ou modifier la commande existante."
+                })
+
+            # 🔁 Vérifie si le produit est dans les produits de la pharmacie
+            if not ProduitPharmacie.objects.filter(pharmacie=pharmacie, produit_fabricant=produit).exists():
+                errors.append({
+                    'index': idx,
+                    'produit': produit.nom,
+                    'message': f"❌ Le produit '{produit.nom}' n’est pas encore enregistré dans votre pharmacie. Veuillez l’ajouter d’abord via le menu Produits ensuite vous cliquer sur Ajouter."
+                })
+
+        if errors:
+            raise serializers.ValidationError({'lignes': errors})
+
+        # ✅ Création de la commande
+        commande = CommandeProduit.objects.create(pharmacie=pharmacie, **validated_data)
 
         for ligne_data in lignes_data:
             produit_fabricant = ligne_data['produit_fabricant']
-            quantite_boites = ligne_data['quantite_commandee']
-            
-            prix_achat_unitaire = produit_fabricant.prix_achat
-            devise = produit_fabricant.devise
+            quantite = ligne_data['quantite_commandee']
+            prix_achat = produit_fabricant.prix_achat
+            devise = produit_fabricant.devise.upper()
 
             if devise == 'USD':
                 try:
                     taux = TauxChange.objects.latest('date').taux
-                    prix_achat_unitaire = prix_achat_unitaire * taux
+                    prix_achat = Decimal(prix_achat) * Decimal(taux)
                 except TauxChange.DoesNotExist:
-                    pass
+                    raise serializers.ValidationError("Aucun taux de change défini.")
+
+            prix_achat = Decimal(prix_achat).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
             CommandeProduitLigne.objects.create(
                 commande=commande,
                 produit_fabricant=produit_fabricant,
-                quantite_commandee=quantite_boites,
-                prix_achat=prix_achat_unitaire
+                quantite_commandee=quantite,
+                prix_achat=prix_achat
             )
 
         return commande
+
 from rest_framework import serializers
 from .models import CommandeProduit, CommandeProduitLigne, ReceptionProduit, ReceptionLigne
 

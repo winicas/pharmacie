@@ -40,7 +40,7 @@ export default function LoginPage() {
             router.push('/dashboard/directeur');
             break;
         case 'admin':
-            router.push('/dashboard/school');
+            router.push('/dashboard/admin');
             break;
         case 'comptable':
             router.push('/dashboard/comptable');

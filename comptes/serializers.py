@@ -48,7 +48,24 @@ class PharmacieSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id']
 
+# serializers.py
+from rest_framework import serializers
+from .models import User
 
+class RegisterAdminSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'first_name', 'last_name', 'password', 'role']
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'role': {'default': 'admin'}  # 👈 Role par défaut
+        }
+
+    def create(self, validated_data):
+        user = User.objects.create_user(**validated_data)
+        return user
 
 class UserSerializer(serializers.ModelSerializer):
     pharmacie = PharmacieSerializer(read_only=True)

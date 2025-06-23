@@ -22,20 +22,27 @@ const SidebarPharmacie = ({ onClose }: { onClose?: () => void }) => {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) return;
+  const token = localStorage.getItem('accessToken');
+  if (!token) {
+    console.warn("Token manquant pour charger la publicité");
+    return;
+  }
 
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/publicite-active/`, {
-      headers: { Authorization: `Bearer ${token}` },
+  fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/publicite-active/`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+    .then(res => {
+      if (!res.ok) throw new Error("Échec requête publicité");
+      return res.json();
     })
-      .then(res => res.json())
-      .then(data => {
-        if (data?.image && data?.description) {
-          setPublicite(data);
-        }
-      })
-      .catch(err => console.error("Erreur chargement publicité:", err));
-  }, []);
+    .then(data => {
+      if (data?.image && data?.description) {
+        setPublicite(data);
+      }
+    })
+    .catch(err => console.error("Erreur chargement publicité:", err));
+}, []);
+
 
   return (
     <aside className="h-full w-72 bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 dark:from-green-800 dark:via-green-700 dark:to-green-600 shadow-2xl flex flex-col font-sans overflow-hidden rounded-tr-3xl rounded-br-3xl">

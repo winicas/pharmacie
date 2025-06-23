@@ -1,6 +1,8 @@
 from pathlib import Path
 import logging
 import os
+from corsheaders.defaults import default_headers
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -14,7 +16,8 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 #DEBUG = True
 
-ALLOWED_HOSTS = ['pharmacie-hefk.onrender.com']
+ALLOWED_HOSTS = ["pharmacie-hefk.onrender.com"]
+
 
 
 # Application definition
@@ -48,9 +51,18 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",        # Ton Next.js
-    "http://localhost:5000",        # Si Electron charge depuis un autre port
+    "https://nicapharmtechnologie.onrender.com",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",        # ← parfois nécessaire aussi
+    "http://localhost:5000",        # ← si tu utilises Electron
+    "http://127.0.0.1:5000",
 ]
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'authorization',
+    'content-type',
+]
+CORS_ALLOW_CREDENTIALS = True
 # Ajoutez ceci pour gérer les fichiers statiques en production
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'  # Utilisez le chemin absolu
@@ -86,8 +98,8 @@ WSGI_APPLICATION = 'gestion_pharmacie.wsgi.application'
 AUTH_USER_MODEL = "comptes.User"  
 from datetime import timedelta
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=800),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=23),
 
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
@@ -101,13 +113,15 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "NAME": "pharmacienica",
-        "USER": "pharmacienica_user",
-        "PASSWORD": "E1T0sUGzCLiJKcenkzFOqtXX3YwCPnoN",
-        "HOST": "dpg-d1472tndiees73auevtg-a",
+        "NAME": "jornicapham",
+        "USER": "jornicapham_user",
+        "PASSWORD": "SiiZDDRc6Nh2mvHkCcUDaBtjvJUG2uyk",
+        "HOST": "dpg-d1bvf68dl3ps73f3numg-a",
         "PORT": "5432",
     }
 }
+
+
 
 
 

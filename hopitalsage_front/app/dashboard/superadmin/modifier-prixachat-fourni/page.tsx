@@ -1,11 +1,11 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import Link from 'next/link'
 
 interface Fabricant {
   id: number
   nom: string
-  pays_origine?: string
 }
 
 interface Produit {
@@ -13,6 +13,7 @@ interface Produit {
   nom: string
   prix_achat: number
   devise: string
+  nombre_plaquettes_par_boite: number
 }
 
 interface Message {
@@ -24,9 +25,12 @@ const Page = () => {
   const [fabricants, setFabricants] = useState<Fabricant[]>([])
   const [produits, setProduits] = useState<Produit[]>([])
   const [accessToken, setAccessToken] = useState<string | null>(null)
-  const [prixModifies, setPrixModifies] = useState<Record<number, number>>({})
+  const [modifications, setModifications] = useState<Record<number, { prix_achat?: number; nombre_plaquettes_par_boite?: number }>>({})
   const [fabricantSelectionne, setFabricantSelectionne] = useState<string | null>(null)
-  const [message, setMessage] = useState<Message | null>(null) // État pour le message
+  const [message, setMessage] = useState<Message | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+
+  const itemsPerPage = 5
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken')
@@ -39,152 +43,228 @@ const Page = () => {
         },
       })
         .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data)) {
-            setFabricants(data)
-          } else {
-            console.error('Format inattendu:', data)
-          }
-        })
+        .then(data => setFabricants(data))
         .catch(err => console.error('Erreur chargement fabricants', err))
     }
   }, [])
 
-  const chargerProduits = (fabricantId: string) => {
-    if (accessToken && fabricantId) {
-      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits/${fabricantId}/`, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Accept': 'application/json',
-        },
+  const chargerProduits = (fabricantId: string, page = 1) => {
+    if (!accessToken) return
+
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits/${fabricantId}/?page=${page}`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    })
+      .then(res => res.json())
+      .then(data => {
+        setProduits(data.results || [])
+        setCurrentPage(page)
+        setModifications({})
       })
-        .then(async res => {
-          const text = await res.text()
-          if (!res.ok) {
-            console.error(`Erreur HTTP ${res.status}: ${text}`)
-            return
-          }
-          try {
-            const json = JSON.parse(text)
-            if (Array.isArray(json)) {
-              setProduits(json)
-              setPrixModifies({}) // Reset modifications
-            } else {
-              console.error('Réponse JSON inattendue:', json)
-            }
-          } catch (e) {
-            console.error('Erreur de parsing JSON:', e)
-          }
-        })
-        .catch(err => console.error('Erreur chargement produits', err))
-    }
+      .catch(err => console.error('Erreur chargement produits', err))
+  }
+
+  const handleInputChange = (produitId: number, field: 'prix_achat' | 'nombre_plaquettes_par_boite', value: number) => {
+    setModifications(prev => ({
+      ...prev,
+      [produitId]: {
+        ...prev[produitId],
+        [field]: value
+      }
+    }))
   }
 
   const sauvegarderPrix = () => {
     if (!accessToken) return
 
-    Object.entries(prixModifies).forEach(([produitId, nouveauPrix]) => {
-      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/${produitId}/modifier/`, {
+    Object.entries(modifications).forEach(([produitId, updates]) => {
+      const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produit/${produitId}/modifier/`
+
+      fetch(url, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prix_achat: nouveauPrix }),
+        body: JSON.stringify(updates),
       })
         .then(res => {
           if (!res.ok) throw new Error(`Erreur ${res.status}`)
           return res.json()
         })
-        .then(data => {
+        .then(() => {
           const produit = produits.find(p => p.id === parseInt(produitId))
+
+          const messages: string[] = []
+
+          if (updates.prix_achat !== undefined) {
+            messages.push(
+              `Prix d'achat : <b>${produit?.prix_achat} ${produit?.devise}</b> → <b>${updates.prix_achat} ${produit?.devise}</b>`
+            )
+          }
+
+          if (updates.nombre_plaquettes_par_boite !== undefined) {
+            messages.push(
+              `Nombre de plaquettes par boîte : <b>${produit?.nombre_plaquettes_par_boite}</b> → <b>${updates.nombre_plaquettes_par_boite}</b>`
+            )
+          }
+
           setMessage({
-            text: `Le prix d'achat du médicament "${produit?.nom}" a été modifié avec succès.`,
+            text: `✅ Le produit <b>"${produit?.nom}"</b> a été mis à jour :<br />${messages.join('<br />')}`,
             type: 'success'
           })
 
-          setTimeout(() => setMessage(null), 5000)
+          setTimeout(() => setMessage(null), 8000)
         })
         .catch(err => {
           console.error(`Erreur mise à jour produit ${produitId}:`, err)
           setMessage({
-            text: `Erreur lors de la mise à jour du prix du produit ${produitId}.`,
+            text: `❌ Erreur lors de la mise à jour du produit <b>${produitId}</b>.`,
             type: 'error'
           })
-          setTimeout(() => setMessage(null), 5000)
+          setTimeout(() => setMessage(null), 8000)
         })
     })
 
-    // Rafraîchir la liste après mise à jour
     if (fabricantSelectionne) {
-      setTimeout(() => chargerProduits(fabricantSelectionne), 1000)
+      setTimeout(() => chargerProduits(fabricantSelectionne, currentPage), 1000)
+    }
+  }
+
+  const goToNextPage = () => {
+    if (fabricantSelectionne) {
+      chargerProduits(fabricantSelectionne, currentPage + 1)
+    }
+  }
+
+  const goToPrevPage = () => {
+    if (currentPage > 1 && fabricantSelectionne) {
+      chargerProduits(fabricantSelectionne, currentPage - 1)
     }
   }
 
   return (
-    <div className="p-6">
-      {/* Affichage du message */}
-      {message && (
-        <div
-          className={`mb-4 p-3 rounded border ${
-            message.type === 'success'
-              ? 'bg-green-100 text-green-800 border-green-300'
-              : 'bg-red-100 text-red-800 border-red-300'
-          }`}
-        >
-          {message.text}
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm">
+        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+          <Link href="/dashboard/superadmin" className="text-blue-600 hover:underline font-medium">
+            ← Retour à l'accueil
+          </Link>
+          <h1 className="text-xl font-bold">Modifier les prix d'achat</h1>
         </div>
-      )}
+      </header>
 
-      <h2 className="text-2xl font-bold mb-4">Modifier les prix d'achat</h2>
+      <main className="container mx-auto px-4 py-6">
+        {/* Message global */}
+        {message && (
+          <div
+            className={`mb-6 p-3 rounded border ${
+              message.type === 'success'
+                ? 'bg-green-50 text-green-800 border-green-200'
+                : 'bg-red-50 text-red-800 border-red-200'
+            }`}
+            dangerouslySetInnerHTML={{ __html: message.text }}
+          />
+        )}
 
-      <select
-        onChange={(e) => {
-          const id = e.target.value
-          setFabricantSelectionne(id)
-          chargerProduits(id)
-        }}
-        className="border px-3 py-2 rounded"
-      >
-        <option value="">Sélectionner un fabricant</option>
-        {fabricants.map((fab) => (
-          <option key={fab.id} value={fab.id}>
-            {fab.nom}
-          </option>
-        ))}
-      </select>
+        {/* Sélection fabricant */}
+        <div className="mb-6">
+          <label htmlFor="fabricant-select" className="block font-medium mb-2">
+            Sélectionner un fabricant :
+          </label>
+          <select
+            id="fabricant-select"
+            onChange={(e) => {
+              const id = e.target.value
+              setFabricantSelectionne(id)
+              chargerProduits(id)
+            }}
+            className="w-full border border-gray-300 rounded px-3 py-2"
+          >
+            <option value="">Sélectionner un fabricant</option>
+            {fabricants.map((fab) => (
+              <option key={fab.id} value={fab.id}>
+                {fab.nom}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      <div className="mt-6">
-        {produits.map(produit => (
-          <div key={produit.id} className="mb-4 border p-4 rounded shadow-sm">
-            <div className="font-semibold">{produit.nom}</div>
-            <div className="text-gray-600 mb-2">
-              Prix d'achat actuel : {produit.prix_achat} {produit.devise}
-            </div>
-            <input
-              type="number"
-              defaultValue={produit.prix_achat}
-              onChange={(e) => {
-                const nouveauPrix = parseFloat(e.target.value)
-                setPrixModifies(prev => ({
-                  ...prev,
-                  [produit.id]: nouveauPrix,
-                }))
-              }}
-              className="border px-2 py-1 rounded w-40"
-            />
+        {/* Liste des produits */}
+        <div className="space-y-4">
+          {produits.length === 0 ? (
+            <p className="text-gray-500 italic">Aucun produit trouvé.</p>
+          ) : (
+            produits.map((produit) => (
+              <div key={produit.id} className="bg-white p-4 rounded shadow hover:shadow-md transition-shadow">
+                <h3 className="font-semibold text-lg">{produit.nom}</h3>
+
+                <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-600">Prix actuel</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      defaultValue={produit.prix_achat}
+                      onChange={(e) => handleInputChange(produit.id, 'prix_achat', parseFloat(e.target.value))}
+                      className="border w-full px-3 py-2 rounded mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-gray-600">Plaquettes par boîte</label>
+                    <input
+                      type="number"
+                      min="1"
+                      defaultValue={produit.nombre_plaquettes_par_boite}
+                      onChange={(e) => handleInputChange(produit.id, 'nombre_plaquettes_par_boite', parseInt(e.target.value))}
+                      className="border w-full px-3 py-2 rounded mt-1"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Pagination */}
+        {produits.length > 0 && (
+          <div className="mt-6 flex justify-between items-center">
+            <button
+              onClick={goToPrevPage}
+              disabled={currentPage === 1}
+              className={`px-4 py-2 rounded ${
+                currentPage === 1
+                  ? 'bg-gray-300 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
+            >
+              Précédent
+            </button>
+            <span className="text-gray-600">Page {currentPage}</span>
+            <button
+              onClick={goToNextPage}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+            >
+              Suivant
+            </button>
           </div>
-        ))}
-      </div>
+        )}
 
-      {produits.length > 0 && (
-        <button
-          onClick={sauvegarderPrix}
-          className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-        >
-          Sauvegarder les modifications
-        </button>
-      )}
+        {/* Sauvegarder */}
+        {produits.length > 0 && (
+          <div className="mt-6">
+            <button
+              onClick={sauvegarderPrix}
+              className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded"
+            >
+              Sauvegarder les modifications
+            </button>
+          </div>
+        )}
+      </main>
     </div>
   )
 }

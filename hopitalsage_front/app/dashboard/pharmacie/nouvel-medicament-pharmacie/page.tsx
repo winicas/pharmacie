@@ -81,17 +81,32 @@ const NouveauProduitPage = () => {
   };
 
   // Envoi du formulaire
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits-pharmacie/`, formData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      router.push('/dashboard/pharmacie/nouvel-medicament-pharmacie/afficher-medicament');
-    } catch (error) {
-      console.error("Erreur d'enregistrement :", error);
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (!token) {
+    alert("❌ Vous n'êtes pas authentifié. Veuillez vous reconnecter.");
+    return;
+  }
+
+  try {
+    const { prix_achat, ...dataToSend } = formData;
+
+    await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits-pharmacie/`, dataToSend, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    router.push('/dashboard/pharmacie/nouvel-medicament-pharmacie/afficher-medicament');
+
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error("Erreur d'enregistrement :", error.response?.data); // 🔍 Montre le message exact de Django
+    } else {
+      console.error("Erreur inconnue :", error);
     }
-  };
+  }
+};
+
 
   return (
     <PharmacieLayout>

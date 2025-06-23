@@ -113,8 +113,6 @@ class CommandeDetailView(RetrieveAPIView):
     serializer_class = CommandeProduitDetailSerializer
     permission_classes = [permissions.IsAuthenticated]
    
-
-
 from rest_framework import generics
 from django_filters.rest_framework import DjangoFilterBackend
 
@@ -849,17 +847,27 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import ProduitFabricant
 from .serializers import ProduitListeModifierFabricantSerializer
+from rest_framework.pagination import PageNumberPagination
+
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 5
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def produits_par_fabricants(request, fabricant_id):
     produits = ProduitFabricant.objects.filter(fabricant_id=fabricant_id)
-    serializer = ProduitListeModifierFabricantSerializer(produits, many=True)
-    return Response(serializer.data)
+    
+    paginator = StandardResultsSetPagination()
+    result_page = paginator.paginate_queryset(produits, request)
 
+    serializer = ProduitListeModifierFabricantSerializer(result_page, many=True)
+    return paginator.get_paginated_response(serializer.data)
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from .models import ProduitFabricant
 
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
@@ -869,19 +877,37 @@ def modifier_prix_produit(request, produit_id):
     except ProduitFabricant.DoesNotExist:
         return Response({'success': False, 'error': 'Produit non trouvé'}, status=404)
 
-    nouveau_prix = request.data.get('prix_achat')
-    if nouveau_prix is None:
-        return Response({'success': False, 'error': 'prix_achat manquant'}, status=400)
+    data = request.data
 
-    try:
-        # On essaie de convertir en float, pour valider la donnée
-        produit.prix_achat = float(nouveau_prix)
-    except ValueError:
-        return Response({'success': False, 'error': 'prix_achat invalide'}, status=400)
+    # Mise à jour du prix_achat si présent
+    nouveau_prix = data.get('prix_achat')
+    if nouveau_prix is not None:
+        try:
+            produit.prix_achat = float(nouveau_prix)
+        except ValueError:
+            return Response({'success': False, 'error': 'prix_achat invalide'}, status=400)
+
+    # Mise à jour nombre_plaquettes_par_boite si présent
+    plaquettes = data.get('nombre_plaquettes_par_boite')
+    if plaquettes is not None:
+        try:
+            produit.nombre_plaquettes_par_boite = int(plaquettes)
+        except ValueError:
+            return Response({
+                'success': False,
+                'error': 'nombre_plaquettes_par_boite doit être un entier positif'
+            }, status=400)
 
     produit.save()
-    return Response({'success': True, 'prix_achat': produit.prix_achat})
 
+    return Response({
+        'success': True,
+        'message': 'Produit mis à jour',
+        'data': {
+            'prix_achat': produit.prix_achat,
+            'nombre_plaquettes_par_boite': produit.nombre_plaquettes_par_boite,
+        }
+    })
 # views.py
 from rest_framework import viewsets
 from .models import RendezVous
@@ -929,7 +955,6 @@ def clients_avec_rendezvous(request):
             })
 
     return Response(results)
-
 
 ###################### gestion de lot de medicament########################
 from rest_framework import viewsets
@@ -1038,7 +1063,6 @@ class CreateDepotPharmaceutiqueView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 from rest_framework.views import APIView
 from rest_framework.response import Response

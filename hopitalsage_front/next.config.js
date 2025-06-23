@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
+ 
   images: {
-    domains: ['localhost'], // Permet d'afficher des images venant du backend local
+    domains: ['https://pharmacie-hefk.onrender.com'], // Permet d'afficher des images venant du backend local
   },
 };
 

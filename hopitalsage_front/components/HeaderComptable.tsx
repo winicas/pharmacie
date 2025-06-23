@@ -226,15 +226,7 @@ const handleLogout = async () => {
       ],
       isTitle: true,
     },
-    {
-      label: 'Taux Echange',
-      icon: '💱',
-      submenu: [
-        { href: '/dashboard/directeur/taux-echange', label: 'Fixe le Taux Echange ou Modifie', icon: '💱' },
-      
-      ],
-      isTitle: true,
-    },
+   
   ];
 
   return (
