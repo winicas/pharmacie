@@ -41,7 +41,7 @@ class ProduitFabricant(models.Model):
 
     fabricant = models.ForeignKey(Fabricant, on_delete=models.CASCADE, related_name='produits')
     nom = models.CharField(max_length=255)
-    prix_achat = models.DecimalField(max_digits=10, decimal_places=2)
+    prix_achat = models.DecimalField(max_digits=10, decimal_places=5)
     devise = models.CharField(max_length=3, choices=DEVISES, default='CDF')
     nombre_plaquettes_par_boite = models.PositiveIntegerField(default=1)  # 👈 Ajout important
 
