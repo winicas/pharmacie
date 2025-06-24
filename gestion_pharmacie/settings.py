@@ -113,10 +113,10 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "NAME": "jornicapham",
-        "USER": "jornicapham_user",
-        "PASSWORD": "SiiZDDRc6Nh2mvHkCcUDaBtjvJUG2uyk",
-        "HOST": "dpg-d1bvf68dl3ps73f3numg-a",
+        "NAME": "jornicapham1",
+        "USER": "jornicapham1_user",
+        "PASSWORD": "OeFArAPsCiZrVWBaDOLygEMqF0y03exU",
+        "HOST": "dpg-d1d86qvdiees73ckm9i0-a",
         "PORT": "5432",
     }
 }
