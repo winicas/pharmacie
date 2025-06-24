@@ -17,7 +17,7 @@ interface User {
   first_name: string;
   last_name: string;
   email: string;
-  photo: string | null;
+  profile_picture: string | null;
   role: string;
   pharmacie: number;
 }
