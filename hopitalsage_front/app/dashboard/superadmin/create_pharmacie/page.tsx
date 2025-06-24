@@ -21,37 +21,52 @@ export default function CreerPharmacie() {
     longitude: 36.8219,
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    const data = new FormData();
-   Object.entries(formData).forEach(([key, value]) => {
-  data.append(key, String(value)); // ✅ Convertit les valeurs en string
-});
+  // 🔐 Récupérer et valider le token d'abord
+  const token = localStorage.getItem('accessToken');
 
-    if (logoFile) {
-      data.append('logo_pharm', logoFile);
-    }
+  if (!token || token === 'undefined' || token === 'null') {
+    alert("Votre session a expiré. Veuillez vous reconnecter.");
+    router.push('/login'); // ou la route appropriée
+    return;
+  }
 
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacies/`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-        },
-        body: data,
-      });
+  const data = new FormData();
+  Object.entries(formData).forEach(([key, value]) => {
+    data.append(key, String(value));
+  });
 
-      if (response.ok) {
-        router.push('/dashboard/superadmin');
-      } else {
-        const error = await response.json();
-        console.error('Erreur serveur:', error);
+  if (logoFile) {
+    data.append('logo_pharm', logoFile);
+  }
+
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacies/`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        // ⚠️ NE PAS mettre 'Content-Type' avec FormData, sinon le `boundary` est cassé
+      },
+      body: data,
+    });
+
+    if (response.ok) {
+      router.push('/dashboard/superadmin');
+    } else {
+      const error = await response.json();
+      console.error('Erreur serveur:', error);
+      if (error?.code === 'token_not_valid') {
+        alert("Votre session est expirée. Veuillez vous reconnecter.");
+        router.push('/login');
       }
-    } catch (error) {
-      console.error('Erreur création:', error);
     }
-  };
+  } catch (error) {
+    console.error('Erreur création:', error);
+  }
+};
+
 
   return (
     <>

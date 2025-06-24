@@ -268,12 +268,17 @@ const handleLogout = async () => {
       <div className="flex items-center gap-4 text-white">
         {user.profile_picture && (
           <Image
-          src={user.profile_picture ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/media/${user.profile_picture}` : '/default-avatar.png'}
-          alt="Photo de profil"
-          width={40}
-          height={40}
-          className="rounded-full object-cover"
-        />
+  src={
+          user.profile_picture
+            ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${user.profile_picture}`
+            : '/avatar.png'
+        }
+        alt="Photo de profil"
+        width={40}
+        height={40}
+        className="rounded-full"
+      />
+
 
         )}
         {/* 🔧 Lien vers la page de modification de profil */}

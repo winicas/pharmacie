@@ -1,8 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
- 
   images: {
-    domains: ['https://pharmacie-hefk.onrender.com'], // Permet d'afficher des images venant du backend local
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8000',
+        pathname: '/media/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'pharmacie-hefk.onrender.com',
+        pathname: '/media/**',
+      },
+    ],
   },
 };
 
