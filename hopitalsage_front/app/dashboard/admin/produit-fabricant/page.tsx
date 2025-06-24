@@ -20,7 +20,6 @@ export default function CreateProduit() {
   const [fabricantId, setFabricantId] = useState<number | ''>('')
   const [nom, setNom] = useState('')
   const [prixAchat, setPrixAchat] = useState<number | ''>('')
-  const [devise, setDevise] = useState<'CDF' | 'USD'>('CDF')
   const [nombrePlaquettes, setNombrePlaquettes] = useState<number | ''>('') 
   const [success, setSuccess] = useState(false)
 
@@ -73,7 +72,7 @@ export default function CreateProduit() {
           fabricant: Number(fabricantId),
           nom,
           prix_achat: prixAchat,
-          devise,
+          devise: 'USD',
           nombre_plaquettes_par_boite: nombrePlaquettes,
         },
         {
@@ -85,34 +84,31 @@ export default function CreateProduit() {
 
       setNom('')
       setPrixAchat('')
-      setDevise('CDF')
       setFabricantId('')
       setNombrePlaquettes('')
       setSuccess(true)
-    }  catch (error: any) {
-  console.error('Erreur création produit', error)
+    } catch (error: any) {
+      console.error('Erreur création produit', error)
 
-  const data = error?.response?.data
+      const data = error?.response?.data
 
-  if (data?.nom?.length) {
-    setErrorMessage(data.nom[0])
-  } else if (data?.non_field_errors?.length) {
-    setErrorMessage(data.non_field_errors[0])
-  } else if (typeof data === 'string') {
-    setErrorMessage(data)
-  } else if (data?.detail) {
-    setErrorMessage(data.detail)
-  } else if (typeof data === 'object') {
-    const messages = Object.entries(data)
-      .map(([k, v]: [string, any]) => `${k} : ${Array.isArray(v) ? v[0] : v}`)
-      .join('\n')
-    setErrorMessage(messages)
-  } else {
-    setErrorMessage("Erreur inconnue.")
-  }
-}
-
-
+      if (data?.nom?.length) {
+        setErrorMessage(data.nom[0])
+      } else if (data?.non_field_errors?.length) {
+        setErrorMessage(data.non_field_errors[0])
+      } else if (typeof data === 'string') {
+        setErrorMessage(data)
+      } else if (data?.detail) {
+        setErrorMessage(data.detail)
+      } else if (typeof data === 'object') {
+        const messages = Object.entries(data)
+          .map(([k, v]: [string, any]) => `${k} : ${Array.isArray(v) ? v[0] : v}`)
+          .join('\n')
+        setErrorMessage(messages)
+      } else {
+        setErrorMessage("Erreur inconnue.")
+      }
+    }
   }
 
   if (loadingUser) {
@@ -197,16 +193,13 @@ export default function CreateProduit() {
             <label htmlFor="devise" className="block text-sm font-medium text-gray-700">
               Devise
             </label>
-            <select
+            <input
               id="devise"
-              value={devise}
-              onChange={(e) => setDevise(e.target.value as 'CDF' | 'USD')}
-              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm"
-              required
-            >
-              <option value="CDF">Franc Congolais (CDF)</option>
-              <option value="USD">Dollar Américain (USD)</option>
-            </select>
+              type="text"
+              value="Dollar Américain (USD)"
+              readOnly
+              className="mt-1 block w-full px-4 py-2 border border-gray-200 bg-gray-100 text-gray-700 rounded-md shadow-sm"
+            />
           </div>
 
           <div>
