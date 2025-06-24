@@ -1,12 +1,12 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Head from 'next/head';
 
 export default function CreerPharmacie() {
   const router = useRouter();
+  const [logoFile, setLogoFile] = useState<File | null>(null);
 
-  // Valeur par défaut pour latitude/longitude (ex: Kinshasa)
   const [formData, setFormData] = useState({
     nom_pharm: '',
     ville_pharm: '',
@@ -16,28 +16,32 @@ export default function CreerPharmacie() {
     idnat: '',
     ni: '',
     telephone: '',
-    latitude: -1.2921,     // <-- valeur par défaut
-    longitude: 36.8219,    // <-- valeur par défaut
     montant_mensuel: '',
+    latitude: -1.2921,
+    longitude: 36.8219,
   });
-
-  // Tu peux garder ce useEffect vide ou le supprimer si tu n'as plus besoin de géoloc
-  useEffect(() => {
-    // Optionnel : afficher un message pour dire qu'on est en mode "défaut"
-    console.log("Mode test : Coordonnées par défaut utilisées");
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const data = new FormData();
+   Object.entries(formData).forEach(([key, value]) => {
+  data.append(key, String(value)); // ✅ Convertit les valeurs en string
+});
+
+    if (logoFile) {
+      data.append('logo_pharm', logoFile);
+    }
+
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacies/`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
-        body: JSON.stringify(formData),
+        body: data,
       });
+
       if (response.ok) {
         router.push('/dashboard/superadmin');
       } else {
@@ -45,7 +49,7 @@ export default function CreerPharmacie() {
         console.error('Erreur serveur:', error);
       }
     } catch (error) {
-      console.error('Erreur lors de la création :', error);
+      console.error('Erreur création:', error);
     }
   };
 
@@ -54,10 +58,9 @@ export default function CreerPharmacie() {
       <Head>
         <title>Créer une Pharmacie</title>
       </Head>
-      <div className="p-6">
-        <h1 className="text-2xl mb-4">Nouvelle Pharmacie</h1>
-        <form onSubmit={handleSubmit}>
-          {/** Champs classiques */}
+      <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-lg mt-10">
+        <h1 className="text-2xl font-bold text-emerald-700 mb-6">Nouvelle Pharmacie</h1>
+        <form onSubmit={handleSubmit} className="space-y-4">
           {[
             { name: 'nom_pharm', placeholder: 'Nom de la pharmacie' },
             { name: 'ville_pharm', placeholder: 'Ville' },
@@ -74,7 +77,7 @@ export default function CreerPharmacie() {
                 name={field.name}
                 value={(formData as any)[field.name]}
                 onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                className="w-full p-2 border rounded mb-4"
+                className="w-full p-3 border rounded-lg"
                 placeholder={field.placeholder}
                 required
                 rows={3}
@@ -86,37 +89,47 @@ export default function CreerPharmacie() {
                 name={field.name}
                 value={(formData as any)[field.name]}
                 onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                className="w-full p-2 border rounded mb-4"
+                className="w-full p-3 border rounded-lg"
                 placeholder={field.placeholder}
                 required
               />
             )
           )}
 
-          {/** Champ pour le montant mensuel */}
           <input
             type="number"
             step="0.01"
             name="montant_mensuel"
             value={formData.montant_mensuel}
             onChange={(e) => setFormData({ ...formData, montant_mensuel: e.target.value })}
-            className="w-full p-2 border rounded mb-4"
+            className="w-full p-3 border rounded-lg"
             placeholder="Montant mensuel à payer"
             required
           />
 
-          {/* Coordonnées GPS affichées en lecture seule */}
-          <div className="text-sm text-gray-500 mb-2">
-            📍 Position GPS utilisée :
-            <br />
-            Latitude : {formData.latitude} / Longitude : {formData.longitude}
+          {/* Upload logo */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Logo de la pharmacie</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
+              className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4
+                file:rounded-lg file:border-0 file:text-sm file:font-semibold
+                file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200"
+            />
+          </div>
+
+          {/* GPS */}
+          <div className="text-sm text-gray-500">
+            📍 Position utilisée : Latitude {formData.latitude} / Longitude {formData.longitude}
           </div>
 
           <button
             type="submit"
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            className="w-full bg-emerald-600 text-white py-3 rounded-lg hover:bg-emerald-700 transition"
           >
-            Créer
+            Créer la pharmacie
           </button>
         </form>
       </div>
