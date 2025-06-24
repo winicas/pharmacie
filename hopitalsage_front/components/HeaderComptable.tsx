@@ -216,6 +216,7 @@ const handleLogout = async () => {
       icon: '👤',
       submenu: [
         { href: '/dashboard/directeur/create-comptable', label: 'Ajouter un utilisateur', icon: '➕' },
+        { href: '/dashboard/directeur/taux-echange', label: 'Ajouter Taux', icon: '➕' },
       ],
       isTitle: true,
     },
