@@ -59,6 +59,11 @@ const SidebarAdmin = ({ userRole }: SidebarProps) => {
           icon: <FaMapMarkedAlt />,
           path: '/dashboard/superadmin/creer-admin',
         },
+         {
+          label: 'Liste de Mes Admin',
+          icon: <FaMapMarkedAlt />,
+          path: '/dashboard/superadmin/afficherAdmin',
+        },
       ],
       roles: ['superuser', 'admin'],
     },

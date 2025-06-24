@@ -92,6 +92,54 @@ class UserViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(pharmacie_id=pharmacie_id)
         return queryset
 
+# views.py
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+
+from .serializers import UpdateProfileSerializer
+
+class UpdateProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        serializer = UpdateProfileSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Profil mis à jour avec succès"}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+############# Aciver et desactivé le USER ADMIN#############""
+# views.py
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAdminUser
+from rest_framework.response import Response
+from .models import User
+from .serializers import AdminUserSerializer
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def liste_admins(request):
+    admins = User.objects.filter(role='admin')
+    serializer = AdminUserSerializer(admins, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAdminUser])
+def desactiver_utilisateur(request, user_id):
+    try:
+        user = User.objects.get(id=user_id, role='admin')
+        user.is_active = False
+        user.save()
+        return Response({'success': True, 'message': f"{user.username} désactivé avec succès."})
+    except User.DoesNotExist:
+        return Response({'success': False, 'error': 'Utilisateur non trouvé ou non admin'}, status=404)
+
+
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404

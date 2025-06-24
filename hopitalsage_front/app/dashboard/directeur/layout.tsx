@@ -27,22 +27,23 @@ export default function PharmacieLayout({ children }: { children: ReactNode }) {
   const [pharmacie, setPharmacie] = useState<Pharmacie | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
+  const token = localStorage.getItem('accessToken');
 
-    if (token) {
-      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacie/`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+  if (token) {
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/me/`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(res => res.json())
+      .then(data => {
+        setUser(data);
+        setPharmacie(data.pharmacie); // ✅ récupère la pharmacie imbriquée
       })
-        .then(res => res.json())
-        .then(data => {
-          setUser(data);
-          setPharmacie(data);
-        })
-        .catch(err => console.error('Erreur récupération:', err));
-    }
-  }, []);
+      .catch(err => console.error('Erreur récupération:', err));
+  }
+}, []);
+
 
   if (!user || !pharmacie) {
     return <div className="text-center p-10 text-gray-500">Chargement...</div>;

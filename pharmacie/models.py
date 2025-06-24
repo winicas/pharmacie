@@ -9,14 +9,6 @@ class Fabricant(models.Model):
     def __str__(self):
         return self.nom
 
-from django.db import models
-
-class Fabricant(models.Model):
-    nom = models.CharField(max_length=255)
-    pays_origine = models.CharField(max_length=100, blank=True, null=True)
-
-    def __str__(self):
-        return self.nom
 
 class DepotPharmaceutique(models.Model):
     fabricant = models.ForeignKey(Fabricant, on_delete=models.CASCADE, related_name='depots')

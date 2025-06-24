@@ -879,7 +879,14 @@ def modifier_prix_produit(request, produit_id):
 
     data = request.data
 
-    # Mise à jour du prix_achat si présent
+    # Nom
+    nouveau_nom = data.get('nom')
+    if nouveau_nom is not None:
+        if not nouveau_nom.strip():
+            return Response({'success': False, 'error': 'Le nom ne peut pas être vide'}, status=400)
+        produit.nom = nouveau_nom.strip()
+
+    # Prix
     nouveau_prix = data.get('prix_achat')
     if nouveau_prix is not None:
         try:
@@ -887,16 +894,13 @@ def modifier_prix_produit(request, produit_id):
         except ValueError:
             return Response({'success': False, 'error': 'prix_achat invalide'}, status=400)
 
-    # Mise à jour nombre_plaquettes_par_boite si présent
+    # Plaquettes
     plaquettes = data.get('nombre_plaquettes_par_boite')
     if plaquettes is not None:
         try:
             produit.nombre_plaquettes_par_boite = int(plaquettes)
         except ValueError:
-            return Response({
-                'success': False,
-                'error': 'nombre_plaquettes_par_boite doit être un entier positif'
-            }, status=400)
+            return Response({'success': False, 'error': 'nombre_plaquettes_par_boite doit être un entier'}, status=400)
 
     produit.save()
 
@@ -904,10 +908,12 @@ def modifier_prix_produit(request, produit_id):
         'success': True,
         'message': 'Produit mis à jour',
         'data': {
+            'nom': produit.nom,
             'prix_achat': produit.prix_achat,
             'nombre_plaquettes_par_boite': produit.nombre_plaquettes_par_boite,
         }
     })
+
 # views.py
 from rest_framework import viewsets
 from .models import RendezVous

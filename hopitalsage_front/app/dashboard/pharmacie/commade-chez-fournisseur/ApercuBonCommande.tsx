@@ -21,34 +21,43 @@ const styles = StyleSheet.create({
   page: { padding: 30, fontSize: 10 },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+    marginBottom: 5,
   },
-  logoSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  logoBlock: {
+    marginRight: 15,
+    alignItems: 'flex-start',
   },
   logo: {
     width: 50,
     height: 50,
-    marginRight: 10,
+    marginBottom: 3,
   },
-  pharmacyName: {
-    fontSize: 14,
-    fontWeight: 'bold',
+  generatedBy: {
+    fontSize: 8,
+    color: '#555',
+  },
+  phoneNumber: {
+    fontSize: 8,
+    color: '#555',
   },
   title: {
     fontSize: 16,
     textAlign: 'center',
-    marginBottom: 15,
+    marginVertical: 10,
     textTransform: 'uppercase',
   },
   infoSection: {
-    marginTop: 10,
+    marginTop: 5,
     marginBottom: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+  },
+  pharmacyName: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 5,
   },
   table: { width: '100%' },
   row: { flexDirection: 'row' },
@@ -74,20 +83,26 @@ const BonCommandePDF = ({
 }) => (
   <Document>
     <Page size="A4" style={styles.page}>
+      {/* Header (Logo + Généré par) */}
       <View style={styles.header}>
-        <View style={styles.logoSection}>
-          <Image src="/logo.jpeg" style={styles.logo} />
-          <Text style={styles.pharmacyName}>{nomPharmacie}</Text>
+        <View style={styles.logoBlock}>
+          <Image src="/nicapharm.png" style={styles.logo} />
+          <Text style={styles.generatedBy}>Généré par NICAPHARM_soft</Text>
+          <Text style={styles.phoneNumber}>+243 993053302</Text>
         </View>
       </View>
 
+      {/* Titre */}
       <Text style={styles.title}>Bon de COMMANDE</Text>
 
+      {/* Infos pharmacie + fabricant + date */}
       <View style={styles.infoSection}>
+        <Text style={styles.pharmacyName}>PHARMACIE : {nomPharmacie}</Text>
         <Text>Fabricant : {fabricant.nom}</Text>
         <Text>Date : {date}</Text>
       </View>
 
+      {/* Tableau produits */}
       <View style={styles.table}>
         <View style={styles.row}>
           <Text style={styles.cell}>Produit</Text>
@@ -107,6 +122,7 @@ const BonCommandePDF = ({
         ))}
       </View>
 
+      {/* Total */}
       <Text style={styles.total}>
         Total : {lignes.reduce((acc, l) => acc + l.quantite * l.prix_achat, 0).toFixed(2)} Fc
       </Text>
@@ -114,6 +130,7 @@ const BonCommandePDF = ({
   </Document>
 );
 
+// Composant principal
 export default function ApercuBonCommande({ fabricant, lignes }: ApercuBonCommandeProps) {
   const [nomPharmacie, setNomPharmacie] = useState<string>('Chargement...');
   const date = new Date().toLocaleDateString();
@@ -122,9 +139,7 @@ export default function ApercuBonCommande({ fabricant, lignes }: ApercuBonComman
     const fetchUser = async () => {
       try {
         const token = localStorage.getItem('accessToken');
-        if (!token) {
-          throw new Error('Token d\'authentification introuvable');
-        }
+        if (!token) throw new Error('Token d\'authentification introuvable');
 
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/me/`, {
           headers: {
@@ -133,16 +148,12 @@ export default function ApercuBonCommande({ fabricant, lignes }: ApercuBonComman
           },
         });
 
-        if (!response.ok) {
-          throw new Error(`Erreur HTTP ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`Erreur HTTP ${response.status}`);
 
         const data = await response.json();
-
-        // Vérifie et set nom de la pharmacie
-        setNomPharmacie(data.pharmacie?.nom || 'Nom pharmacie indisponible');
+        setNomPharmacie(data.pharmacie?.nom_pharm || 'Nom pharmacie indisponible');
       } catch (error) {
-        console.error('Erreur lors de la récupération utilisateur:', error);
+        console.error('Erreur utilisateur :', error);
         setNomPharmacie('Pharmacie inconnue');
       }
     };

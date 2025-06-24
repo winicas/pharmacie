@@ -128,6 +128,46 @@ class UsercomptableSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
+# serializers.py
+from rest_framework import serializers
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+class UpdateProfileSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True, style={'input_type': 'password'})
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email', 'profile_picture', 'password']
+        extra_kwargs = {
+            'email': {'required': False, 'allow_blank': True},
+            'profile_picture': {'required': False, 'allow_null': True}
+        }
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+
+        # Met à jour les autres champs
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        # Met à jour le mot de passe si fourni
+        if password:
+            instance.set_password(password)
+
+        instance.save()
+        return instance
+
+
+from rest_framework import serializers
+from .models import User
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'is_active', 'date_joined']
+
 
 # serializers.py
 from rest_framework import serializers

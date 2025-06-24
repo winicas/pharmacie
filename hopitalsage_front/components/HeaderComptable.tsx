@@ -1,6 +1,8 @@
 'use client';
 
-import { LogOut, ChevronDown } from 'lucide-react';
+//import { LogOut, ChevronDown } from 'lucide-react';
+import { LogOut, ChevronDown, UserCircle } from 'lucide-react'; // ✅ ajoute UserCircle
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
@@ -21,7 +23,7 @@ interface User {
   first_name: string;
   last_name: string;
   email: string;
-  photo: string | null;
+  profile_picture: string | null;
   role: string;
   pharmacie: number;
 }
@@ -262,19 +264,23 @@ const handleLogout = async () => {
           </AnimatePresence>
         </div>
       </div>
-
       {/* User Info + Déconnexion */}
       <div className="flex items-center gap-4 text-white">
-        {user.photo && (
+        {user.profile_picture && (
           <Image
-            src={user.photo}
-            alt="Photo de profil"
-            width={40}
-            height={40}
-            className="rounded-full object-cover"
-          />
+          src={user.profile_picture ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/media/${user.profile_picture}` : '/default-avatar.png'}
+          alt="Photo de profil"
+          width={40}
+          height={40}
+          className="rounded-full object-cover"
+        />
+
         )}
-        <div className="text-sm font-medium">{user.first_name} {user.last_name}</div>
+        {/* 🔧 Lien vers la page de modification de profil */}
+        <Link href="#" className="hover:text-yellow-300">
+          <UserCircle size={22} />
+        </Link>
+                <div className="text-sm font-medium">{user.first_name} {user.last_name}</div>
         <button onClick={handleLogout} className="hover:text-red-300">
           <LogOut size={20} />
         </button>
