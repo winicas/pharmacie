@@ -68,15 +68,15 @@ const SidebarPharmacie = ({ onClose }: { onClose?: () => void }) => {
 
         {/* 🔹 Logo + Nom Pharmacie */}
         <div className="flex flex-col items-center">
-          <img
+         <img
             src={
               pharmacie?.logo_pharm
                 ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${pharmacie.logo_pharm}`
                 : '/logo.jpeg'
             }
             alt="Logo de la pharmacie"
-            className="w-20 h-20 rounded-full object-cover shadow-lg ring-4 ring-white dark:ring-emerald-700 mb-3"
           />
+
           <motion.h1
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -141,11 +141,11 @@ const SidebarPharmacie = ({ onClose }: { onClose?: () => void }) => {
               ✖
             </button>
 
-            <img
-              src={publicite.image}
-              alt="Zoom publicité"
-              className="w-full max-h-[400px] object-contain rounded-lg mb-4"
+           <img
+              src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${publicite.image}`}
+              alt="Publicité Pharmacie"
             />
+
 
             <h2 className="text-2xl font-bold mb-2 text-emerald-700 dark:text-emerald-400">En Promotion</h2>
 
