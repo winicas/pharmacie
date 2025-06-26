@@ -34,19 +34,20 @@ const SidebarPharmacie = ({ onClose }: { onClose?: () => void }) => {
       return;
     }
 
-    // 📦 Charger publicité
+    // Charger publicité
     fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/publicite-active/`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(res => res.ok ? res.json() : Promise.reject(res))
       .then(data => {
+        console.log("Données publicité :", data);
         if (data?.image && data?.description) {
           setPublicite(data);
         }
       })
       .catch(err => console.error("Erreur pub:", err));
 
-    // 🏥 Charger infos pharmacie de l'utilisateur
+    // Charger infos pharmacie
     fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/me/`, {
       headers: {
         'Content-Type': 'application/json',
@@ -55,6 +56,8 @@ const SidebarPharmacie = ({ onClose }: { onClose?: () => void }) => {
     })
       .then(res => res.ok ? res.json() : Promise.reject(res))
       .then(data => {
+        console.log("Infos utilisateur reçues:", data);
+        console.log("Logo pharmacie:", data.pharmacie?.logo_pharm);
         setPharmacie(data.pharmacie || null);
       })
       .catch(error => {
@@ -66,17 +69,20 @@ const SidebarPharmacie = ({ onClose }: { onClose?: () => void }) => {
     <aside className="h-full w-72 bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 dark:from-green-800 dark:via-green-700 dark:to-green-600 shadow-2xl flex flex-col font-sans overflow-hidden rounded-tr-3xl rounded-br-3xl">
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 scrollbar-thin scrollbar-thumb-emerald-400/70 scrollbar-track-transparent">
 
-        {/* 🔹 Logo + Nom Pharmacie */}
+        {/* Logo + Nom Pharmacie */}
         <div className="flex flex-col items-center">
-         <img
+          <img
             src={
               pharmacie?.logo_pharm
                 ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${pharmacie.logo_pharm}`
                 : '/logo.jpeg'
             }
+            onError={(e) => {
+              e.currentTarget.src = '/logo.jpeg';
+            }}
             alt="Logo de la pharmacie"
+            className="w-20 h-20 rounded-full object-cover shadow-lg ring-4 ring-white dark:ring-emerald-700 mb-3"
           />
-
           <motion.h1
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -97,14 +103,17 @@ const SidebarPharmacie = ({ onClose }: { onClose?: () => void }) => {
           🏠 Accueil
         </motion.button>
 
-        {/* 🔸 Publicité */}
+        {/* Publicité */}
         {publicite && (
           <div
             className="bg-white/10 backdrop-blur-lg p-4 rounded-2xl shadow text-white cursor-pointer"
             onClick={() => setShowModal(true)}
           >
             <img
-              src={publicite.image}
+              src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${publicite.image}`}
+              onError={(e) => {
+                e.currentTarget.src = '/logo.jpeg';
+              }}
               alt="Publicité Pharmacie"
               className="w-full h-48 object-cover rounded-xl mb-2 transition hover:scale-105"
             />
@@ -116,7 +125,7 @@ const SidebarPharmacie = ({ onClose }: { onClose?: () => void }) => {
           </div>
         )}
 
-        {/* 🔸 Paiement Abonnement */}
+        {/* Paiement Abonnement */}
         <div className="bg-white/10 backdrop-blur-lg p-4 rounded-2xl text-white text-sm shadow">
           <h3 className="font-bold mb-1">💰 Paiement Abonnement</h3>
           <p>Numéro : <strong>0856693433</strong></p>
@@ -141,11 +150,14 @@ const SidebarPharmacie = ({ onClose }: { onClose?: () => void }) => {
               ✖
             </button>
 
-           <img
+            <img
               src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${publicite.image}`}
-              alt="Publicité Pharmacie"
+              onError={(e) => {
+                e.currentTarget.src = '/logo.jpeg';
+              }}
+              alt="Zoom publicité"
+              className="w-full max-h-[400px] object-contain rounded-lg mb-4"
             />
-
 
             <h2 className="text-2xl font-bold mb-2 text-emerald-700 dark:text-emerald-400">En Promotion</h2>
 
