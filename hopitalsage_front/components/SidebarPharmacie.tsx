@@ -58,7 +58,7 @@ const SidebarPharmacie = ({ onClose }: { onClose?: () => void }) => {
       .then(data => {
         console.log("Infos utilisateur reçues:", data);
         console.log("Logo pharmacie:", data.pharmacie?.logo_pharm);
-        console.log("✅ LOGO_PHARM reçu :", data.pharmacie?.logo_pharm);
+       
 
         setPharmacie(data.pharmacie || null);
       })
@@ -73,20 +73,20 @@ const SidebarPharmacie = ({ onClose }: { onClose?: () => void }) => {
 
         {/* Logo + Nom Pharmacie */}
         <div className="flex flex-col items-center">
-         <img
-  src={
-    pharmacie?.logo_pharm
-      ? pharmacie.logo_pharm.startsWith('http')
-        ? pharmacie.logo_pharm
-        : `${process.env.NEXT_PUBLIC_API_BASE_URL}${pharmacie.logo_pharm}`
-      : '/logo.jpeg'
-  }
-  onError={(e) => {
-    e.currentTarget.src = '/logo.jpeg';
-  }}
-  alt="Logo de la pharmacie"
-  className="w-20 h-20 rounded-full object-cover shadow-lg ring-4 ring-white dark:ring-emerald-700 mb-3"
-/>
+          <img
+          src={
+            pharmacie?.logo_pharm
+              ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${pharmacie.logo_pharm}`
+              : '/logo.jpeg'
+          }
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = '/nicapharm.png';
+          }}
+          alt="Logo de la pharmacie"
+          className="w-20 h-20 rounded-full object-cover shadow-lg ring-4 ring-white dark:ring-emerald-700 mb-3"
+        />
+
 
           <motion.h1
             initial={{ opacity: 0, y: 10 }}
@@ -114,14 +114,16 @@ const SidebarPharmacie = ({ onClose }: { onClose?: () => void }) => {
             className="bg-white/10 backdrop-blur-lg p-4 rounded-2xl shadow text-white cursor-pointer"
             onClick={() => setShowModal(true)}
           >
-            <img       
-              src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${publicite.image}`}
+           <img
+              src={publicite.image}
               onError={(e) => {
+                e.currentTarget.onerror = null;
                 e.currentTarget.src = '/nicapharm.png';
               }}
               alt="Publicité Pharmacie"
               className="w-full h-48 object-cover rounded-xl mb-2 transition hover:scale-105"
             />
+
             <h2 className="font-bold text-base">Promotion</h2>
             <p className="text-sm truncate">{publicite.description}</p>
             <p className="text-xs mt-1 italic text-white/70">
@@ -158,7 +160,7 @@ const SidebarPharmacie = ({ onClose }: { onClose?: () => void }) => {
             <img
               src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${publicite.image}`}
               onError={(e) => {
-                e.currentTarget.src = '/logo.jpeg';
+                e.currentTarget.src = '/nicapharm.png';
               }}
               alt="Zoom publicité"
               className="w-full max-h-[400px] object-contain rounded-lg mb-4"
