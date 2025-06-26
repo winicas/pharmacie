@@ -204,37 +204,47 @@ const totalUSD = panier.reduce((acc, p) => {
 
   };
 
-  const ajouterDepuisRequisition = async (req: any) => {
-    if (!selectedFabricant || req.fabricant_nom !== selectedFabricant.nom) {
-      alert("Le produit ne correspond pas au fabricant sélectionné.");
-      return;
-    }
+ const ajouterDepuisRequisition = async (req: any) => {
+  if (!selectedFabricant || req.fabricant_nom !== selectedFabricant.nom) {
+    alert("Le produit ne correspond pas au fabricant sélectionné.");
+    return;
+  }
 
-    const idProduit = req.produit_fabricant_id;
+  const idProduit = req.produit_fabricant_id;
 
-    if (!idProduit) {
-      alert("Ce produit n'a pas d'ID valide. Veuillez contacter l'administrateur.");
-      return;
-    }
+  if (!idProduit) {
+    alert("Ce produit n'a pas d'ID valide. Veuillez contacter l'administrateur.");
+    return;
+  }
 
-    ajouterAuPanier({
-      nom: req.nom_produit || req.nom_personnalise,
-      prix_achat: req.prix_achat ?? 0,
-      id: idProduit,
-      fabricant: selectedFabricant.nom,
-      quantite: req.nombre_demandes || 1,
+  // 🔍 Cherche le produit correspondant dans la liste des produits sélectionnés
+  const produitDetail = produits.find((p) => p.id === idProduit);
+
+  if (!produitDetail) {
+    alert("Impossible de retrouver les informations du produit. Veuillez recharger la page.");
+    return;
+  }
+
+  ajouterAuPanier({
+    nom: req.nom_produit || req.nom_personnalise,
+    prix_achat_cdf: produitDetail.prix_achat_cdf ?? 0,
+    taux_change: produitDetail.taux_change ?? 1,
+    id: idProduit,
+    fabricant: selectedFabricant.nom,
+    quantite: req.nombre_demandes || 1,
+  });
+
+  try {
+    await axios.delete(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/requisitions/${req.id}/`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
+    setRequisitions(prev => prev.filter(r => r.id !== req.id));
+  } catch (error) {
+    console.error("Erreur lors de la suppression de la réquisition :", error);
+    alert("Échec de la suppression de la réquisition.");
+  }
+};
 
-    try {
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/requisitions/${req.id}/`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      setRequisitions(prev => prev.filter(r => r.id !== req.id));
-    } catch (error) {
-      console.error("Erreur lors de la suppression de la réquisition :", error);
-      alert("Échec de la suppression de la réquisition.");
-    }
-  };
 
   return (
     <div className="max-w-7xl mx-auto p-4 space-y-6">

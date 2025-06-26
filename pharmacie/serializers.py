@@ -37,8 +37,6 @@ class ProduitFabricantSerializer(serializers.ModelSerializer):
             })
         return data
 
-
-# serializers.py
 from rest_framework import serializers
 from .models import ProduitFabricant
 
@@ -180,18 +178,37 @@ from rest_framework import serializers
 from .models import CommandeProduitLigne, ProduitFabricant
 from rest_framework import serializers
 from .models import CommandeProduitLigne, ProduitFabricant
-
-class CommandeProduitLigneSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CommandeProduitLigne
-        fields = ['produit_fabricant', 'quantite_commandee', 'prix_achat']
-        read_only_fields = ['prix_achat']
+import random
+import string
 
 from .models import TauxChange  # Assure-toi que c'est bien importé
 from .models import TauxChange  # Assure-toi que c'est bien importé
 from decimal import Decimal, ROUND_HALF_UP
 from rest_framework import serializers
 from pharmacie.models import TauxChange, CommandeProduit, CommandeProduitLigne
+
+from rest_framework import serializers
+from decimal import Decimal, ROUND_HALF_UP
+from datetime import date, timedelta
+import random
+import string
+from pharmacie.models import (
+    CommandeProduit,
+    CommandeProduitLigne,
+    ProduitPharmacie,
+    TauxChange,
+    LotProduitPharmacie
+)
+
+def generer_code_barre_aleatoire():
+    chars = string.ascii_letters + string.digits + "!@#$%^&*"
+    return ''.join(random.choices(chars, k=6))
+
+class CommandeProduitLigneSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CommandeProduitLigne
+        fields = ['produit_fabricant', 'quantite_commandee', 'prix_achat']
+        read_only_fields = ['prix_achat']
 
 class CommandeProduitSerializer(serializers.ModelSerializer):
     lignes = CommandeProduitLigneSerializer(many=True)
@@ -215,7 +232,7 @@ class CommandeProduitSerializer(serializers.ModelSerializer):
         for idx, ligne_data in enumerate(lignes_data):
             produit = ligne_data['produit_fabricant']
 
-            # 🔁 Vérifie doublon de commande aujourd'hui
+            # 🔁 Doublon de commande aujourd'hui
             deja_commande = CommandeProduitLigne.objects.filter(
                 produit_fabricant=produit,
                 commande__pharmacie=pharmacie,
@@ -226,15 +243,7 @@ class CommandeProduitSerializer(serializers.ModelSerializer):
                 errors.append({
                     'index': idx,
                     'produit': produit.nom,
-                    'message': f"⚠ Le produit '{produit.nom}' a déjà été commandé aujourd’hui par votre pharmacie. Veuillez attendre demain ou modifier la commande existante."
-                })
-
-            # 🔁 Vérifie si le produit est dans les produits de la pharmacie
-            if not ProduitPharmacie.objects.filter(pharmacie=pharmacie, produit_fabricant=produit).exists():
-                errors.append({
-                    'index': idx,
-                    'produit': produit.nom,
-                    'message': f"❌ Le produit '{produit.nom}' n’est pas encore enregistré dans votre pharmacie. Veuillez l’ajouter d’abord via le menu Produits ensuite vous cliquer sur Ajouter."
+                    'message': f"⚠ Le produit '{produit.nom}' a déjà été commandé aujourd’hui par votre pharmacie."
                 })
 
         if errors:
@@ -246,18 +255,19 @@ class CommandeProduitSerializer(serializers.ModelSerializer):
         for ligne_data in lignes_data:
             produit_fabricant = ligne_data['produit_fabricant']
             quantite = ligne_data['quantite_commandee']
-            prix_achat = produit_fabricant.prix_achat
             devise = produit_fabricant.devise.upper()
+            prix_achat = Decimal(produit_fabricant.prix_achat)
 
             if devise == 'USD':
                 try:
                     taux = TauxChange.objects.latest('date').taux
-                    prix_achat = Decimal(prix_achat) * Decimal(taux)
+                    prix_achat *= Decimal(taux)
                 except TauxChange.DoesNotExist:
                     raise serializers.ValidationError("Aucun taux de change défini.")
 
-            prix_achat = Decimal(prix_achat).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            prix_achat = prix_achat.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
+            # 🛒 Ligne de commande
             CommandeProduitLigne.objects.create(
                 commande=commande,
                 produit_fabricant=produit_fabricant,
@@ -265,7 +275,39 @@ class CommandeProduitSerializer(serializers.ModelSerializer):
                 prix_achat=prix_achat
             )
 
+            # ✅ Création automatique dans ProduitPharmacie s’il n’existe pas
+            produit_existe = ProduitPharmacie.objects.filter(
+                pharmacie=pharmacie,
+                produit_fabricant=produit_fabricant
+            ).first()
+
+            if not produit_existe:
+                nb_plaquettes = quantite * produit_fabricant.nombre_plaquettes_par_boite
+
+                produit = ProduitPharmacie.objects.create(
+                    pharmacie=pharmacie,
+                    produit_fabricant=produit_fabricant,
+                    code_barre=generer_code_barre_aleatoire(),
+                    nom_medicament=produit_fabricant.nom,
+                    indication=True,
+                    localisation='A0',
+                    conditionnement='boîte',
+                    date_peremption=date.today() + timedelta(days=545),  # 1 an + 6 mois
+                    categorie='True',
+                    alerte_quantite=8,
+                    quantite=nb_plaquettes,
+                    prix_achat=prix_achat,
+                    marge_beneficiaire=Decimal('35.00'),
+                )
+
+                produit.prix_vente = (
+                    produit.prix_achat + (produit.prix_achat * produit.marge_beneficiaire / 100)
+                ).quantize(Decimal('0.01'))
+
+                produit.save()
+
         return commande
+
 
 from rest_framework import serializers
 from .models import CommandeProduit, CommandeProduitLigne, ReceptionProduit, ReceptionLigne
@@ -312,15 +354,20 @@ class MouvementCommandeSerializer(serializers.ModelSerializer):
 from rest_framework import serializers
 from .models import ReceptionProduit, ReceptionLigne, ProduitPharmacie, CommandeProduitLigne
 from datetime import date
+from rest_framework import serializers
+from datetime import date, timedelta
+from decimal import Decimal
+from pharmacie.models import (
+    ReceptionProduit,
+    ReceptionLigne,
+    ProduitPharmacie,
+    LotProduitPharmacie,
+)
+
 class ReceptionLigneSerializer(serializers.ModelSerializer):
     class Meta:
         model = ReceptionLigne
         fields = ['ligne_commande', 'quantite_recue']
-
-    def validate(self, data):
-        print("Données reçues dans ReceptionLigneSerializer :", data)
-        return data
-from datetime import date, timedelta
 
 class ReceptionProduitSerializer(serializers.ModelSerializer):
     lignes = ReceptionLigneSerializer(many=True)
@@ -333,35 +380,41 @@ class ReceptionProduitSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         lignes_data = validated_data.pop('lignes')
         reception = ReceptionProduit.objects.create(**validated_data)
+        commande = reception.commande
+        pharmacie = commande.pharmacie
 
         for ligne_data in lignes_data:
+            # Création de la ligne de réception
             reception_ligne = ReceptionLigne.objects.create(reception=reception, **ligne_data)
 
             commande_ligne = ligne_data['ligne_commande']
             produit_fabricant = commande_ligne.produit_fabricant
+            quantite_recue = ligne_data['quantite_recue']  # en boîtes
 
-            # Conversion des boîtes en plaquettes
-            nombre_plaquettes = ligne_data['quantite_recue'] * produit_fabricant.nombre_plaquettes_par_boite
+            if not produit_fabricant:
+                raise serializers.ValidationError("Produit fabricant introuvable pour la ligne.")
 
-            produit, created = ProduitPharmacie.objects.get_or_create(
-                pharmacie=reception.commande.pharmacie,
+            # 🔁 Conversion boîtes → plaquettes
+            nb_plaquettes = quantite_recue * produit_fabricant.nombre_plaquettes_par_boite
+
+            # 📦 Stock en pharmacie
+            produit_pharmacie, _ = ProduitPharmacie.objects.get_or_create(
+                pharmacie=pharmacie,
                 produit_fabricant=produit_fabricant,
                 defaults={'quantite': 0}
             )
-            produit.quantite += nombre_plaquettes
-            produit.save()
+            produit_pharmacie.quantite += nb_plaquettes
+            produit_pharmacie.save()
 
-            # ✅ Création automatique du lot
-            from pharmacie.models import LotProduitPharmacie  # si pas déjà importé
-
+            # ✅ Création du lot
             LotProduitPharmacie.objects.create(
-                produit=produit,
-                quantite=nombre_plaquettes,
-                date_peremption=date.today() + timedelta(days=365)  # 1 an par défaut
-                # numero_lot, prix_achat, prix_vente seront gérés automatiquement dans le modèle
+                produit=produit_pharmacie,
+                quantite=nb_plaquettes,
+                date_peremption=date.today() + timedelta(days=365)
             )
 
         return reception
+
 
 
 ###############################################

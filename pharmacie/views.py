@@ -66,10 +66,24 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .serializers import CommandeProduitSerializer
   
+import logging
+from rest_framework.response import Response
+from rest_framework import status
+
+logger = logging.getLogger(__name__)
+
 class CommandeProduitViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = CommandeProduit.objects.all()
-    serializer_class = CommandeProduitSerializer 
+    serializer_class = CommandeProduitSerializer
+
+    def perform_create(self, serializer):
+        try:
+            serializer.save()
+        except Exception as e:
+            logger.exception("❌ Erreur lors de la création de la commande : %s", str(e))
+            raise
+
 
 from rest_framework.views import APIView
 from rest_framework.response import Response

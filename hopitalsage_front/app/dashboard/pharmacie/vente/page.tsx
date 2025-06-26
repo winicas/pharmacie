@@ -25,6 +25,19 @@ interface LigneVente {
   total: number;
 }
 
+interface PharmacieData {
+  id: number;
+  nom_pharm: string;
+  ville_pharm: string;
+  commune_pharm: string;
+  adresse_pharm: string;
+  rccm: string;
+  idnat: string;
+  ni: string;
+  telephone: string;
+  logo_pharm: string | null;
+}
+
 export default function VentePage() {
   const [produits, setProduits] = useState<ProduitPharmacie[]>([]);
   const [pharmacieNom, setPharmacieNom] = useState<string | null>(null);
@@ -37,6 +50,7 @@ export default function VentePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [pharmacieData, setPharmacieData] = useState<PharmacieData | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -46,19 +60,20 @@ export default function VentePage() {
   useEffect(() => {
     if (accessToken) {
       axios
-        .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacie/`, {
+        .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/me/`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         })
         .then((res) => {
-          if (res.data.length > 0) {
-            const pharmaId = res.data[0].id;
-            setPharmacieId(pharmaId);
-            setPharmacieNom(res.data[0].nom_pharmacie);
+          const pharmacie = res.data.pharmacie;
+          if (pharmacie) {
+            setPharmacieData(pharmacie);
+            setPharmacieId(pharmacie.id);
+            setPharmacieNom(pharmacie.nom_pharm);
           } else {
-            setError("Aucune pharmacie associée à cet utilisateur");
+            setError("Aucune pharmacie trouvée pour cet utilisateur");
           }
         })
-        .catch(() => setError("Erreur lors du chargement de la pharmacie"))
+        .catch(() => setError("Erreur lors du chargement des données de la pharmacie"))
         .finally(() => setLoading(false));
     }
   }, [accessToken]);
@@ -133,6 +148,7 @@ export default function VentePage() {
     const lignesValides = lignes.filter(
       (l) => l.produit !== null && l.quantite > 0 && l.prix_unitaire > 0
     );
+
     if (lignesValides.length === 0) {
       alert("Aucun médicament valide sélectionné.");
       return;
@@ -142,15 +158,16 @@ export default function VentePage() {
       lignes: lignesValides,
       selectedClient,
       totalVente: lignesValides.reduce((s, l) => s + l.total, 0),
-      pharmacie: {
-        nom_pharm: 'COSMO PHARMA',
-        ville_pharm: 'Kinshasa',
-        commune_pharm: 'Bandalungwa',
-        adresse_pharm: '24, Avenue Kasa-Vubu',
-        rccm: 'CD/KIN/RCCM/123',
-        idnat: 'IDNAT/456789',
-        ni: 'NI/987654',
-        telephone: '+243 812345678',
+      pharmacie: pharmacieData || {
+        nom_pharm: 'Nom inconnu',
+        ville_pharm: '',
+        commune_pharm: '',
+        adresse_pharm: '',
+        rccm: '',
+        idnat: '',
+        ni: '',
+        telephone: '',
+        logo_pharm: null,
       },
       type: 'proformat',
     });
@@ -189,15 +206,16 @@ export default function VentePage() {
         lignes,
         selectedClient,
         totalVente,
-        pharmacie: {
-          nom_pharm: 'COSMO PHARMA',
-          ville_pharm: 'Kinshasa',
-          commune_pharm: 'Bandalungwa',
-          adresse_pharm: '24, Avenue Kasa-Vubu',
-          rccm: 'CD/KIN/RCCM/123',
-          idnat: 'IDNAT/456789',
-          ni: 'NI/987654',
-          telephone: '+243 812345678',
+        pharmacie: pharmacieData || {
+          nom_pharm: 'Nom inconnu',
+          ville_pharm: '',
+          commune_pharm: '',
+          adresse_pharm: '',
+          rccm: '',
+          idnat: '',
+          ni: '',
+          telephone: '',
+          logo_pharm: null,
         }
       });
 
@@ -205,6 +223,7 @@ export default function VentePage() {
       setLignes([{ produit: null, quantite: 1, prix_unitaire: 0, total: 0 }]);
       setSelectedClient(null);
       setClientSearchTerm('');
+
     } catch (err: any) {
       alert("Erreur : " + JSON.stringify(err.response?.data || err.message));
     }
@@ -212,6 +231,7 @@ export default function VentePage() {
 
   if (loading)
     return <div className="p-6 text-center">Chargement...</div>;
+
   if (error)
     return <div className="p-6 text-red-500 text-center">{error}</div>;
 
@@ -229,157 +249,177 @@ export default function VentePage() {
       <div className="p-6 bg-white rounded-xl shadow-md space-y-6">
         <h1 className="text-2xl font-bold">Nouvelle Vente</h1>
 
-        {/* Sélection du client */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h2 className="text-lg font-semibold mb-3">Client</h2>
-          <input
-            type="text"
-            placeholder="Rechercher un client..."
-            className="w-full p-3 border rounded-lg"
-            value={clientSearchTerm}
-            onChange={(e) => setClientSearchTerm(e.target.value)}
-          />
-          {selectedClient && (
-            <div className="mt-2 p-3 bg-blue-50 rounded flex justify-between items-center">
-              <div>
-                <strong>{selectedClient.nom_complet}</strong>{' '}
-                <span className="text-gray-600 ml-3">{selectedClient.telephone}</span>
+        {/* Grille principale */}
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* COLONNE GAUCHE - Produits */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Produits</h2>
+
+            <input
+              type="text"
+              placeholder="Rechercher un médicament..."
+              className="w-full p-3 border rounded-lg"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+
+            {searchTerm && (
+              <div className="grid md:grid-cols-1 gap-3 max-h-80 overflow-y-auto border rounded p-3 bg-gray-50">
+                {filteredProduits.map((produit) => (
+                  <div
+                    key={produit.id}
+                    className="border p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition"
+                    onClick={() => {
+                      const dejaPris = lignes.some((l) => l.produit?.id === produit.id);
+                      if (dejaPris) {
+                        alert('Ce produit a déjà été sélectionné dans la commande.');
+                        return;
+                      }
+                      const emptyIndex = lignes.findIndex((l) => l.produit === null);
+                      if (emptyIndex >= 0) {
+                        updateLigneProduit(emptyIndex, produit.id);
+                      } else {
+                        setLignes([
+                          ...lignes,
+                          {
+                            produit,
+                            quantite: 1,
+                            prix_unitaire: produit.prix_vente,
+                            total: produit.prix_vente * 1,
+                          },
+                        ]);
+                      }
+                    }}
+                  >
+                    <div className="font-semibold">{produit.nom_medicament}</div>
+                    <div className="text-sm text-gray-600">Stock : {produit.quantite}</div>
+                    <div className="text-sm text-green-600 font-bold">{produit.prix_vente} Fc</div>
+                  </div>
+                ))}
+                {filteredProduits.length === 0 && (
+                  <div className="text-center text-gray-500">Aucun produit trouvé</div>
+                )}
               </div>
-              <button
-                className="text-red-500 hover:underline"
-                onClick={() => {
-                  setSelectedClient(null);
-                  setClientSearchTerm('');
-                }}
-              >
-                Changer
-              </button>
-            </div>
-          )}
-          {!selectedClient && clientSearchTerm && (
-            <div className="bg-white border rounded shadow mt-1 max-h-40 overflow-y-auto">
-              {filteredClients.map((client) => (
-                <div
-                  key={client.id}
-                  className="p-2 hover:bg-gray-100 cursor-pointer"
-                  onClick={() => {
-                    setSelectedClient(client);
-                    setClientSearchTerm('');
-                  }}
-                >
-                  <div className="font-semibold">{client.nom_complet}</div>
-                  <div className="text-sm text-gray-500">{client.telephone}</div>
+            )}
+          </div>
+
+          {/* COLONNE DROITE - Panier */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Panier</h2>
+
+            {/* Sélection du client */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-md font-semibold mb-2">Client</h3>
+              <input
+                type="text"
+                placeholder="Rechercher un client..."
+                className="w-full p-3 border rounded-lg"
+                value={clientSearchTerm}
+                onChange={(e) => setClientSearchTerm(e.target.value)}
+              />
+              {selectedClient && (
+                <div className="mt-2 p-3 bg-blue-50 rounded flex justify-between items-center">
+                  <div>
+                    <strong>{selectedClient.nom_complet}</strong>{' '}
+                    <span className="text-gray-600 ml-3">{selectedClient.telephone}</span>
+                  </div>
+                  <button
+                    className="text-red-500 hover:underline"
+                    onClick={() => {
+                      setSelectedClient(null);
+                      setClientSearchTerm('');
+                    }}
+                  >
+                    Changer
+                  </button>
                 </div>
-              ))}
-              {filteredClients.length === 0 && (
-                <div className="p-2 text-gray-500">Aucun client trouvé</div>
+              )}
+              {!selectedClient && clientSearchTerm && (
+                <div className="bg-white border rounded shadow mt-1 max-h-40 overflow-y-auto">
+                  {filteredClients.map((client) => (
+                    <div
+                      key={client.id}
+                      className="p-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => {
+                        setSelectedClient(client);
+                        setClientSearchTerm('');
+                      }}
+                    >
+                      <div className="font-semibold">{client.nom_complet}</div>
+                      <div className="text-sm text-gray-500">{client.telephone}</div>
+                    </div>
+                  ))}
+                  {filteredClients.length === 0 && (
+                    <div className="p-2 text-gray-500">Aucun client trouvé</div>
+                  )}
+                </div>
               )}
             </div>
-          )}
-        </div>
 
-        {/* Recherche produit */}
-        <input
-          type="text"
-          placeholder="Rechercher un médicament..."
-          className="w-full p-3 border rounded-lg"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-
-        {/* Liste de produits filtrés */}
-        {searchTerm && (
-          <div className="grid md:grid-cols-3 gap-3 max-h-60 overflow-y-auto">
-            {filteredProduits.map((produit) => (
-              <div
-                key={produit.id}
-                className="border p-3 rounded-lg hover:bg-gray-50 cursor-pointer"
-                onClick={() => {
-                  const dejaPris = lignes.some((l) => l.produit?.id === produit.id);
-                  if (dejaPris) {
-                    alert('Ce produit a déjà été sélectionné dans la commande.');
-                    return;
-                  }
-                  const emptyIndex = lignes.findIndex((l) => l.produit === null);
-                  if (emptyIndex >= 0) {
-                    updateLigneProduit(emptyIndex, produit.id);
-                  } else {
-                    setLignes([
-                      ...lignes,
-                      {
-                        produit,
-                        quantite: 1,
-                        prix_unitaire: produit.prix_vente,
-                        total: produit.prix_vente * 1,
-                      },
-                    ]);
-                  }
-                }}
-              >
-                <div className="font-semibold">{produit.nom_medicament}</div>
-                <div className="text-sm text-gray-600">Stock : {produit.quantite}</div>
-                <div className="text-sm text-green-600 font-bold">{produit.prix_vente} Fc</div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Lignes de vente */}
-        <div className="space-y-4">
-          {lignes.map((ligne, index) => (
-            <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-3 items-center">
-              <select
-                className="p-2 border rounded"
-                value={ligne.produit?.id || ''}
-                onChange={(e) => updateLigneProduit(index, parseInt(e.target.value))}
-              >
-                <option value="">Choisir un produit</option>
-                {produits.map((p) => (
-                  <option key={p.id} value={p.id}>{p.nom_medicament}</option>
-                ))}
-              </select>
-              <input
-                type="number"
-                min="1"
-                className="p-2 border rounded"
-                value={ligne.quantite}
-                onChange={(e) => updateLigneQuantite(index, parseInt(e.target.value))}
-              />
-              <div>P.U : {Number(ligne.prix_unitaire || 0).toFixed(2)} Fc</div>
-              <div>Total : {Number(ligne.total || 0).toFixed(2)} Fc</div>
+            {/* Lignes de vente */}
+            <div className="space-y-3">
+              {lignes.map((ligne, index) => (
+                <div key={index} className="grid grid-cols-1 gap-3 border p-3 rounded-lg bg-white shadow-sm">
+                  <select
+                    className="p-2 border rounded"
+                    value={ligne.produit?.id || ''}
+                    onChange={(e) => updateLigneProduit(index, parseInt(e.target.value))}
+                  >
+                    <option value="">Choisir un produit</option>
+                    {produits.map((p) => (
+                      <option key={p.id} value={p.id}>{p.nom_medicament}</option>
+                    ))}
+                  </select>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      min="1"
+                      className="p-2 border rounded w-20"
+                      value={ligne.quantite}
+                      onChange={(e) => updateLigneQuantite(index, parseInt(e.target.value))}
+                    />
+                    <div>P.U : {Number(ligne.prix_unitaire || 0).toFixed(2)} Fc</div>
+                    <div>Total : {Number(ligne.total || 0).toFixed(2)} Fc</div>
+                    <button
+                      className="ml-auto text-red-500 hover:underline"
+                      onClick={() => removeLigne(index)}
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                </div>
+              ))}
               <button
-                className="text-red-500 hover:underline"
-                onClick={() => removeLigne(index)}
+                className="text-blue-500 hover:underline"
+                onClick={addLigne}
               >
-                Supprimer
+                + Ajouter une ligne
               </button>
             </div>
-          ))}
-          <button
-            className="text-blue-500 hover:underline"
-            onClick={addLigne}
-          >
-            + Ajouter une ligne
-          </button>
-        </div>
 
-        {/* Total & Boutons */}
-        <div className="flex justify-between items-center border-t pt-4">
-          <div className="text-lg font-bold">
-            Total: {Number(totalVente).toFixed(2)} Fc
+            {/* Total & Boutons */}
+            <div className="bg-emerald-50 border-t pt-4 p-4 rounded-lg">
+              <div className="flex justify-between items-center mb-4">
+                <div className="text-lg font-bold">
+                  Total: {Number(totalVente).toFixed(2)} Fc
+                </div>
+              </div>
+              <div className="flex justify-end gap-4">
+                <button
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded"
+                  onClick={handleProformat}
+                >
+                  Proformat
+                </button>
+                <button
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+                  onClick={handleSubmit}
+                >
+                  Enregistrer Vente
+                </button>
+              </div>
+            </div>
           </div>
-          <button
-            className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded"
-            onClick={handleProformat}
-          >
-            Proformat
-          </button>
-          <button
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
-            onClick={handleSubmit}
-          >
-            Enregistrer Vente
-          </button>
         </div>
       </div>
     </PharmacieLayout>
