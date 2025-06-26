@@ -64,8 +64,8 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 ]
 CORS_ALLOW_CREDENTIALS = True
 # Ajoutez ceci pour gérer les fichiers statiques en production
-STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'  # Utilisez le chemin absolu
+
+
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Pour les fichiers média (images, etc.)
 MEDIA_URL = '/media/'
