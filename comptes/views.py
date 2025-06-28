@@ -128,6 +128,13 @@ def liste_admins(request):
     return Response(serializer.data)
 
 
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAdminUser
+from rest_framework.response import Response
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
 @api_view(['PATCH'])
 @permission_classes([IsAdminUser])
 def desactiver_utilisateur(request, user_id):
@@ -136,6 +143,18 @@ def desactiver_utilisateur(request, user_id):
         user.is_active = False
         user.save()
         return Response({'success': True, 'message': f"{user.username} désactivé avec succès."})
+    except User.DoesNotExist:
+        return Response({'success': False, 'error': 'Utilisateur non trouvé ou non admin'}, status=404)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAdminUser])
+def reactiver_utilisateur(request, user_id):
+    try:
+        user = User.objects.get(id=user_id, role='admin')
+        user.is_active = True
+        user.save()
+        return Response({'success': True, 'message': f"{user.username} réactivé avec succès."})
     except User.DoesNotExist:
         return Response({'success': False, 'error': 'Utilisateur non trouvé ou non admin'}, status=404)
 

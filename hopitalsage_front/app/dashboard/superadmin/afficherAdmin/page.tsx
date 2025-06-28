@@ -78,6 +78,36 @@ const Page = () => {
       })
   }
 
+  const reactiverAdmin = (adminId: number) => {
+    if (!accessToken) return
+
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/admins/${adminId}/reactiver/`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setMessage({ type: 'success', text: data.message })
+          setAdmins(prev =>
+            prev.map(admin =>
+              admin.id === adminId ? { ...admin, is_active: true } : admin
+            )
+          )
+        } else {
+          setMessage({ type: 'error', text: data.error || 'Erreur inconnue' })
+        }
+        setTimeout(() => setMessage(null), 5000)
+      })
+      .catch(() => {
+        setMessage({ type: 'error', text: 'Erreur lors de la requête' })
+        setTimeout(() => setMessage(null), 5000)
+      })
+  }
+
   if (loading) {
     return <div className="p-10 text-center text-gray-600">Chargement des administrateurs...</div>
   }
@@ -130,7 +160,12 @@ const Page = () => {
                         Désactiver
                       </button>
                     ) : (
-                      <span className="text-gray-400 italic text-sm">Aucune action</span>
+                      <button
+                        onClick={() => reactiverAdmin(admin.id)}
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm"
+                      >
+                        Réactiver
+                      </button>
                     )}
                   </td>
                 </tr>

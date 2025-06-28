@@ -6,10 +6,14 @@ from corsheaders.defaults import default_headers
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+from pathlib import Path
+import os
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-logging.basicConfig(level=logging.DEBUG) 
+#logging.basicConfig(level=logging.DEBUG) 
 # SECURITY WARNING: keep the secret key used in production secret!
 #SECRET_KEY = 'django-insecure-#z+!08_7q)g9zgor&1vk+@l8x)$5fp&4-!a#r^+p@)k3khf#-m'
 SECRET_KEY = os.environ.get("SECRET_KEY")
@@ -123,7 +127,6 @@ DATABASES = {
         "PORT": "5432",
     }
 }
-
 
 
 # Password validation

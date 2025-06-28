@@ -83,58 +83,8 @@ class ProduitPharmacieSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProduitPharmacie
         fields = '__all__'
-        read_only_fields = ['pharmacie', 'prix_achat', 'prix_vente']
+        read_only_fields = ['pharmacie', 'prix_achat', 'prix_vente', 'quantite']
 
-    def create(self, validated_data):
-        try:
-            produit_fabricant = validated_data['produit_fabricant']
-            prix_achat_fabricant = Decimal(produit_fabricant.prix_achat)
-            devise = produit_fabricant.devise.upper()
-
-            # Conversion USD -> CDF
-            if devise == 'USD':
-                try:
-                    taux = TauxChange.objects.latest('date').taux
-                    prix_achat = prix_achat_fabricant * Decimal(taux)
-                except ObjectDoesNotExist:
-                    raise serializers.ValidationError({
-                        "prix_achat": "Aucun taux de change disponible pour convertir depuis USD."
-                    })
-            else:
-                prix_achat = prix_achat_fabricant
-
-            validated_data['prix_achat'] = prix_achat
-
-            # Calcul du prix de vente selon la marge bénéficiaire
-            marge = validated_data.get('marge_beneficiaire')
-            if marge is not None:
-                try:
-                    prix_vente = prix_achat + (prix_achat * Decimal(marge) / 100)
-                    validated_data['prix_vente'] = prix_vente
-                except (InvalidOperation, TypeError):
-                    raise serializers.ValidationError({
-                        "marge_beneficiaire": "Marge invalide pour calcul du prix de vente."
-                    })
-
-            # ✅ Création du médicament en pharmacie
-            produit = super().create(validated_data)
-
-            # ✅ Création du premier lot lié
-            numero_lot = generate_unique_numero_lot()
-
-            LotProduitPharmacie.objects.create(
-                produit=produit,
-                numero_lot=numero_lot,
-                date_peremption=validated_data['date_peremption'],
-                quantite=validated_data['quantite'],
-                prix_achat=produit.prix_achat,
-                prix_vente=produit.prix_vente,
-            )
-
-            return produit
-
-        except KeyError as e:
-            raise serializers.ValidationError({str(e): "Champ requis manquant."})
 
 # serializers.py
 from rest_framework import serializers
