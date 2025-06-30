@@ -50,41 +50,75 @@ export default function RequisitionPage() {
   const [pharmacie, setPharmacie] = useState<Pharmacie | null>(null);
 
   const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+  const API = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+  // Redirection si token invalide
+  const handle401 = () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    alert('Votre session a expiré. Veuillez vous reconnecter.');
+    window.location.href = '/login';
+  };
 
   useEffect(() => {
-    if (!accessToken) return;
+    const fetchUserAndPharmacie = async () => {
+      if (!accessToken) return handle401();
 
-    axios.get('https://pharmacie-hefk.onrender.com/api/user/me/', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }).then(res => setUser(res.data));
+      try {
+        const userRes = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/me/`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        setUser(userRes.data);
 
-    axios.get('https://pharmacie-hefk.onrender.com/api/pharmacie/', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }).then(res => {
-      if (res.data.length > 0) {
-        setPharmacie(res.data[0]);
-        setPharmacieId(res.data[0].id);
+        const pharmRes = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacie/`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (pharmRes.data.length > 0) {
+          setPharmacie(pharmRes.data[0]);
+          setPharmacieId(pharmRes.data[0].id);
+        }
+      } catch (error: any) {
+        if (error.response?.status === 401) handle401();
+        else console.error('Erreur de chargement des données :', error);
       }
-    });
+    };
+
+    fetchUserAndPharmacie();
   }, [accessToken]);
 
   useEffect(() => {
-    if (!accessToken || !pharmacieId) return;
+    const fetchProduitsEtRequisitions = async () => {
+      if (!accessToken || !pharmacieId) return;
 
-    axios.get('https://pharmacie-hefk.onrender.com/api/produits-fabricants/', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }).then(res => setProduits(res.data));
+      try {
+        const produitsRes = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits-fabricants/`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        setProduits(produitsRes.data);
 
-    chargerRequisitions();
+        await chargerRequisitions();
+      } catch (error: any) {
+        if (error.response?.status === 401) handle401();
+        else console.error('Erreur de chargement des produits ou réquisitions :', error);
+      }
+    };
+
+    fetchProduitsEtRequisitions();
   }, [accessToken, pharmacieId]);
 
-  const chargerRequisitions = () => {
-    axios.get(`https://pharmacie-hefk.onrender.com/api/requisitions/?pharmacie=${pharmacieId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }).then(res => setRequisitions(res.data));
+  const chargerRequisitions = async () => {
+    try {
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/requisitions/?pharmacie=${pharmacieId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      setRequisitions(res.data);
+    } catch (error: any) {
+      if (error.response?.status === 401) handle401();
+      else console.error('Erreur chargement des réquisitions :', error);
+    }
   };
 
-  const ajouterRequisition = (produit: any) => {
+  const ajouterRequisition = async (produit: any) => {
     const nom = produit.nom;
 
     if (!produit.id && !nom.trim()) {
@@ -97,48 +131,47 @@ export default function RequisitionPage() {
       ...(produit.id ? { produit_fabricant: produit.id } : { nom_personnalise: nom }),
     };
 
-    axios.post('https://pharmacie-hefk.onrender.com/api/requisitions/', payload, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
-      .then(() => {
-        chargerRequisitions();
-        setCustomNom('');
-        setMessageErreur('');
-      })
-      .catch(error => {
-        const errMsg = error.response?.data?.detail || "Erreur inconnue.";
-        setMessageErreur(errMsg);
+    try {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/requisitions/`, payload, {
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
+      await chargerRequisitions();
+      setCustomNom('');
+      setMessageErreur('');
+    } catch (error: any) {
+      if (error.response?.status === 401) handle401();
+      else setMessageErreur(error.response?.data?.detail || "Erreur inconnue.");
+    }
   };
 
   const supprimerRequisition = async (id: number) => {
-    if (!accessToken) return;
+    if (!accessToken) return handle401();
 
     if (confirm("Supprimer cette réquisition ?")) {
       try {
-        await axios.delete(`https://pharmacie-hefk.onrender.com/api/requisitions/${id}/`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
+        await axios.delete(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/requisitions/${id}/`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
         });
         setRequisitions(prev => prev.filter(r => r.id !== id));
-      } catch (error) {
-        console.error("Erreur suppression individuelle :", error);
-        alert("Échec de la suppression.");
+      } catch (error: any) {
+        if (error.response?.status === 401) handle401();
+        else {
+          console.error("Erreur suppression individuelle :", error);
+          alert("Échec de la suppression.");
+        }
       }
     }
   };
 
   const incrementerDemande = async (id: number) => {
     try {
-      await axios.post(`https://pharmacie-hefk.onrender.com/api/requisitions/${id}/incrementer/`, null, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/requisitions/${id}/incrementer/`, null, {
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
-      chargerRequisitions();
-    } catch (error) {
-      console.error("Erreur lors de l'incrément :", error);
+      await chargerRequisitions();
+    } catch (error: any) {
+      if (error.response?.status === 401) handle401();
+      else console.error("Erreur lors de l'incrément :", error);
     }
   };
 
@@ -189,20 +222,20 @@ export default function RequisitionPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
 
-              {filteredProduits.length > 0 && (
-                <div className="grid grid-cols-1 gap-4 mb-6">
-                  {filteredProduits.slice(0, 10).map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => ajouterRequisition(p)}
-                      className="p-3 bg-blue-100 hover:bg-blue-200 rounded text-left shadow"
-                    >
-                      <p className="font-semibold">{p.nom}</p>
-                      <p className="text-sm text-gray-600">Fabricant : {p.fabricant_nom}</p>
-                    </button>
-                  ))}
-                </div>
-              )}
+             {filteredProduits.length > 0 && (
+  <div className="grid grid-cols-1 gap-4 mb-6">
+    {filteredProduits.slice(0, 10).map((p) => (
+      <div
+        key={p.id}
+        className="flex flex-col bg-blue-50 border border-blue-200 p-3 rounded hover:bg-blue-100 cursor-pointer"
+        onClick={() => ajouterRequisition(p)}
+      >
+        <span className="font-bold text-gray-800">{p.nom}</span>
+        <span className="text-sm text-gray-600">Fabricant : {p.fabricant_nom || "Non spécifié"}</span>
+      </div>
+    ))}
+  </div>
+)}
 
               <input
                 className="w-full p-3 border rounded mb-2"
@@ -248,7 +281,13 @@ export default function RequisitionPage() {
                         >
                           🔁
                         </button>
-                       
+                        <button
+                          onClick={() => supprimerRequisition(r.id)}
+                          className="text-red-600 hover:text-red-800"
+                          title="Supprimer"
+                        >
+                          ❌
+                        </button>
                       </div>
                     </div>
                   ))

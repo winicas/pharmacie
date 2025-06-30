@@ -10,6 +10,9 @@ interface Lot {
   nom_medicament: string
   date_peremption: string
   quantite: number
+  produit: {
+    pharmacie: number
+  }
 }
 
 function addDays(days: number) {
@@ -20,20 +23,54 @@ function addDays(days: number) {
 
 export default function PageLotsExpire() {
   const [lots, setLots] = useState<Lot[]>([])
-  const [periode, setPeriode] = useState<number>(60) // 2 mois par défaut
+  const [periode, setPeriode] = useState<number>(60)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken')
     const dateMax = addDays(periode)
 
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/lots/?date_max=${dateMax}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => setLots(data))
-      .catch((err) => console.error('Erreur lors du chargement des lots', err))
+    if (!token) {
+      setError("Token non trouvé.")
+      return
+    }
+
+    const fetchData = async () => {
+      try {
+        // Étape 1 : récupérer les infos utilisateur
+        const userRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/me/`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+
+        if (!userRes.ok) throw new Error('Échec lors de la récupération des infos utilisateur')
+        const user = await userRes.json()
+        const pharmacieId = user.pharmacie
+
+        // Étape 2 : récupérer les lots
+        const lotRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/lots/?date_max=${dateMax}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+
+        if (!lotRes.ok) throw new Error('Échec lors de la récupération des lots')
+        const allLots = await lotRes.json()
+
+        // Étape 3 : filtrer les lots selon la pharmacie
+        const filteredLots = allLots.filter(
+          (lot: Lot) => lot.produit?.pharmacie === pharmacieId
+        )
+
+        setLots(filteredLots)
+        setError(null)
+      } catch (err: any) {
+        console.error('Erreur :', err)
+        setError(err.message || 'Erreur inconnue')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
   }, [periode])
 
   const getUrgencyColor = (dateStr: string) => {
@@ -63,6 +100,7 @@ export default function PageLotsExpire() {
           Produits proches de péremption
         </h1>
 
+        {/* Boutons de période */}
         <div className="flex gap-4 mb-8">
           <button
             onClick={() => setPeriode(7)}
@@ -84,7 +122,17 @@ export default function PageLotsExpire() {
           </button>
         </div>
 
-        {lots.length === 0 ? (
+        {/* Erreur */}
+        {error && (
+          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded">
+            <p>{error}</p>
+          </div>
+        )}
+
+        {/* Chargement */}
+        {loading ? (
+          <p className="text-gray-500">Chargement...</p>
+        ) : lots.length === 0 ? (
           <div className="text-gray-600 text-center mt-16">
             <Image
               src="/warning.png"

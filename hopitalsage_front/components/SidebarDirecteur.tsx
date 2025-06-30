@@ -1,216 +1,177 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+interface Publicite {
+  image: string;
+  description: string;
+  date_debut: string;
+  date_fin: string;
+}
+
+interface PharmacieData {
+  nom_pharm: string;
+  logo_pharm: string | null;
+}
+
 const SidebarPharmacie = ({ onClose }: { onClose?: () => void }) => {
-  const [suggestion, setSuggestion] = useState('');
-  const [message, setMessage] = useState('');
   const router = useRouter();
-  const [isCopying, setIsCopying] = useState(false);
-  const [copyProgress, setCopyProgress] = useState<number | null>(null);
-
-  
-
-
-  const handleSuggestionSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Suggestion envoyée:', suggestion);
-    setSuggestion('');
-  };
+  const [publicite, setPublicite] = useState<Publicite | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [pharmacie, setPharmacie] = useState<PharmacieData | null>(null);
 
   const handleGoHome = () => {
-    router.push('/dashboard/comptable');
+    router.push('/dashboard/comptable'); // <- Redirection ici
     if (onClose) onClose();
   };
 
-const handleSauvegardeSQL = async () => {
-  const token = localStorage.getItem("accessToken");
-  if (!token) return;
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      console.warn("Token manquant");
+      return;
+    }
 
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/sauvegarde-sql/`, {
-      method: "GET",
+    // Charger publicité
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/publicite-active/`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(res => res.ok ? res.json() : Promise.reject(res))
+      .then(data => {
+        if (data?.image && data?.description) {
+          setPublicite(data);
+        }
+      })
+      .catch(err => console.error("Erreur pub:", err));
+
+    // Charger infos pharmacie
+    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/me/`, {
       headers: {
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-    });
-
-    if (!response.ok) throw new Error("Erreur lors de la sauvegarde SQL");
-
-    // Téléchargement manuel
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "backup.sql";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-
-  } catch (err) {
-    console.error("Erreur sauvegarde SQL:", err);
-  }
-};
-// Juste après handleSauvegardeSQL
-const handleCopierVersUSB = async () => {
-  const token = localStorage.getItem("accessToken");
-  if (!token) {
-    alert("Vous devez être connecté.");
-    return;
-  }
-
-  try {
-    setIsCopying(true);
-
-    // Lance la requête
-    const copiePromise = fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/copier-usb/`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }).then(async (response) => {
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Erreur serveur");
-      alert("✅ " + result.message);
-    });
-
-    // Forcer un délai minimal de 15 secondes (15000 ms)
-    const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
-    await Promise.all([copiePromise, delay(15000)]);
-
-  } catch (error: any) {
-    alert("❌ Erreur : " + error.message);
-  } finally {
-    setIsCopying(false);
-  }
-};
-
-{isCopying && (
-  <div
-    style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100vw',
-      height: '100vh',
-      backgroundColor: 'rgba(0,0,0,0.7)',
-      color: 'white',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      fontSize: '1.8rem',
-      zIndex: 9999,
-      flexDirection: 'column',
-      gap: '20px',
-      userSelect: 'none',
-    }}
-  >
-    <div className="animate-spin" style={{ fontSize: '3rem' }}>🔄</div>
-    <div>Copie en cours, merci de patienter...</div>
-  </div>
-)}
-
-
+    })
+      .then(res => res.ok ? res.json() : Promise.reject(res))
+      .then(data => {
+        setPharmacie(data.pharmacie || null);
+      })
+      .catch(error => {
+        console.error("Erreur chargement pharmacie:", error);
+      });
+  }, []);
 
   return (
-    <aside className="h-full bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 dark:from-green-800 dark:via-green-700 dark:to-green-600 p-5 rounded-3xl shadow-2xl flex flex-col justify-between font-sans w-64">
-      <div className="flex flex-col items-center">
-        {/* Logo */}
-        <img
-          src="/logo.jpeg"
-          alt="Logo de la pharmacie"
-          className="w-20 h-20 rounded-full object-cover shadow-lg ring-4 ring-white dark:ring-emerald-700 mb-4"
-        />
+    <aside className="h-full w-72 bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 dark:from-green-800 dark:via-green-700 dark:to-green-600 shadow-2xl flex flex-col font-sans overflow-hidden rounded-tr-3xl rounded-br-3xl">
+      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 scrollbar-thin scrollbar-thumb-emerald-400/70 scrollbar-track-transparent">
+        
+        {/* Logo + Nom Pharmacie */}
+        <div className="flex flex-col items-center">
+          <img
+            src={
+              pharmacie?.logo_pharm
+                ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${pharmacie.logo_pharm}`
+                : '/logo.jpeg'
+            }
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = '/nicapharm.png';
+            }}
+            alt="Logo de la pharmacie"
+            className="w-20 h-20 rounded-full object-cover shadow-lg ring-4 ring-white dark:ring-emerald-700 mb-3"
+          />
 
-        {/* Nom de l'app */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
-          className="text-white text-xl font-extrabold tracking-wide mb-6 text-center"
-        >
-          COSMO PHARMA
-        </motion.div>
+          <motion.h1
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="text-white text-xl font-bold tracking-wide text-center"
+          >
+            {pharmacie?.nom_pharm || 'Pharmacie inconnue'}
+          </motion.h1>
+        </div>
 
         {/* Accueil */}
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleGoHome}
-          className="bg-emerald-100/30 dark:bg-emerald-900 text-white font-semibold py-2 px-4 rounded-xl shadow-md mb-4 hover:bg-emerald-200/40 dark:hover:bg-emerald-800 transition"
+          className="w-full bg-emerald-100/30 dark:bg-emerald-900 text-white font-semibold py-2 px-4 rounded-xl shadow hover:bg-emerald-200/40 dark:hover:bg-emerald-800 transition"
         >
           🏠 Accueil
         </motion.button>
 
-        {/* Message Admin */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="bg-emerald-200/20 dark:bg-emerald-900 text-white p-4 rounded-2xl text-center text-sm shadow-md mb-6"
-        >
-          <p className="font-semibold mb-2">📢 Message de l'Administrateur :</p>
-          <p>Bienvenue chez <strong>NICA PHARMTECH</strong> 🌿</p>
-          <a
-            href="https://www.nicatech.com" 
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-emerald-200 underline text-xs mt-2 inline-block"
+        {/* Publicité */}
+        {publicite && (
+          <div
+            className="bg-white/10 backdrop-blur-lg p-4 rounded-2xl shadow text-white cursor-pointer"
+            onClick={() => setShowModal(true)}
           >
-            Voir notre site
-          </a>
-        </motion.div>
+            <img
+              src={publicite.image}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = '/nicapharm.png';
+              }}
+              alt="Publicité Pharmacie"
+              className="w-full h-48 object-cover rounded-xl mb-2 transition hover:scale-105"
+            />
 
-        {/* Bouton Sauvegarder -> Redirection vers /dashboard/directeur/export-data */}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleSauvegardeSQL}
-          className="w-full flex items-center justify-center gap-2 bg-blue-100/30 dark:bg-blue-900 text-white font-semibold py-2 px-4 rounded-xl shadow-md mb-4 hover:bg-blue-200/40 dark:hover:bg-blue-800 transition"
-        >
-          💾 Sauvegarder les données
-        </motion.button>
-     
-<motion.button
-  onClick={handleCopierVersUSB}
-  disabled={isCopying}
-  className="w-full bg-green-600 text-white py-2 rounded-xl shadow-md mb-4 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
->
-  Copier vers la clé USB
-</motion.button>
-
-
-        {message && (
-          <p className="text-white text-xs text-center mb-4">
-            {message}
-          </p>
+            <h2 className="font-bold text-base">Promotion</h2>
+            <p className="text-sm truncate">{publicite.description}</p>
+            <p className="text-xs mt-1 italic text-white/70">
+              📅 {publicite.date_debut} → {publicite.date_fin}
+            </p>
+          </div>
         )}
 
-        {/* Suggestion */}
-        <form onSubmit={handleSuggestionSubmit} className="w-full flex flex-col gap-3">
-          <input
-            type="text"
-            placeholder="Votre suggestion..."
-            value={suggestion}
-            onChange={(e) => setSuggestion(e.target.value)}
-            className="p-2 rounded-xl text-sm focus:outline-none bg-emerald-100/20 dark:bg-emerald-900/30 placeholder-white text-white"
-          />
-          <button
-            type="submit"
-            className="bg-emerald-100/30 dark:bg-emerald-900 text-white font-semibold py-2 rounded-xl hover:bg-emerald-200/40 dark:hover:bg-emerald-800 transition"
-          >
-            Envoyer
-          </button>
-        </form>
+        {/* Paiement Abonnement */}
+        <div className="bg-white/10 backdrop-blur-lg p-4 rounded-2xl text-white text-sm shadow">
+          <h3 className="font-bold mb-1">💰 Paiement Abonnement</h3>
+          <p>Numéro : <strong>0856693433</strong></p>
+          <p>Compte : <strong>ARCHIPE KAYEYE</strong></p>
+        </div>
       </div>
 
-      {/* Footer */}
-      <div className="text-center text-white text-xs mt-8">
-        <p className="font-bold">© Nicatech 2025</p>
-        <p className="mt-1">Développé par Ir. XUBUNTU</p>
+      {/* Pied de page */}
+      <div className="px-4 py-3 text-center text-white text-xs border-t border-white/20">
+        <p className="font-semibold">© Nicatech 2024</p>
+        <p>Développé par Ir. XUBUNTU</p>
       </div>
+
+      {/* Modal Publicité */}
+      {showModal && publicite && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center px-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-xl p-6 w-full max-w-2xl relative shadow-2xl overflow-y-auto max-h-[90vh]">
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-3 right-3 text-gray-500 hover:text-red-500 font-bold text-2xl"
+            >
+              ✖
+            </button>
+
+            <img
+              src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${publicite.image}`}
+              onError={(e) => {
+                e.currentTarget.src = '/nicapharm.png';
+              }}
+              alt="Zoom publicité"
+              className="w-full max-h-[400px] object-contain rounded-lg mb-4"
+            />
+
+            <h2 className="text-2xl font-bold mb-2 text-emerald-700 dark:text-emerald-400">En Promotion</h2>
+
+            <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
+              {publicite.description}
+            </p>
+
+            <p className="text-xs mt-3 italic text-gray-500 dark:text-gray-400">
+              📅 {publicite.date_debut} → {publicite.date_fin}
+            </p>
+          </div>
+        </div>
+      )}
     </aside>
   );
 };

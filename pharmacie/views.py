@@ -399,24 +399,30 @@ from django.db.models import F
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def produits_en_alerte(request):
-    produits = ProduitPharmacie.objects.filter(quantite__lte=F('alerte_quantite'))
-    
+    # On récupère la pharmacie de l'utilisateur connecté
+    user = request.user
+    if not hasattr(user, 'pharmacie'):
+        return Response({"detail": "Utilisateur sans pharmacie liée."}, status=403)
+
+    # On filtre les produits de SA pharmacie uniquement
+    produits = ProduitPharmacie.objects.filter(
+        pharmacie=user.pharmacie,
+        quantite__lte=F('alerte_quantite')
+    )
+
     result = []
     for p in produits:
-        if p.quantite <= p.alerte_quantite:
-            if p.quantite <= p.alerte_quantite / 2:
-                niveau = 'danger'
-            else:
-                niveau = 'warning'
-            result.append({
-                'id': p.id,
-                'nom_medicament': p.nom_medicament,
-                'quantite': p.quantite,
-                'alerte_quantite': p.alerte_quantite,
-                'niveau_alerte': niveau
-            })
+        niveau = 'danger' if p.quantite <= p.alerte_quantite / 2 else 'warning'
+        result.append({
+            'id': p.id,
+            'nom_medicament': p.nom_medicament,
+            'quantite': p.quantite,
+            'alerte_quantite': p.alerte_quantite,
+            'niveau_alerte': niveau
+        })
 
     return Response(result)
+
 
 
 # pharmacie/views.py
@@ -551,9 +557,19 @@ from rest_framework.response import Response
 from .models import Requisition
 from .serializers import RequisitionSerializer, ClientRendezvousSerializer
 
+from rest_framework import viewsets
+from .models import Requisition
+from .serializers import RequisitionSerializer
+
 class RequisitionViewSet(viewsets.ModelViewSet):
-    queryset = Requisition.objects.all()
     serializer_class = RequisitionSerializer
+
+    def get_queryset(self):
+        pharmacie_id = self.request.query_params.get('pharmacie')
+        queryset = Requisition.objects.all()
+        if pharmacie_id is not None:
+            queryset = queryset.filter(pharmacie_id=pharmacie_id)
+        return queryset
 
     def create(self, request, *args, **kwargs):
         pharmacie = request.data.get('pharmacie')
@@ -986,16 +1002,39 @@ from rest_framework import viewsets
 from .models import LotProduitPharmacie
 from .serializers import LotProduitPharmacieSerializer
 
+from django.core.exceptions import ObjectDoesNotExist
+from datetime import datetime
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import viewsets
+from .models import LotProduitPharmacie
+from .serializers import LotProduitPharmacieSerializer
+from django.core.exceptions import ObjectDoesNotExist
+
+from rest_framework import viewsets
+from datetime import datetime
+from .models import LotProduitPharmacie
+from .serializers import LotProduitPharmacieSerializer
+
 class LotProduitPharmacieViewSet(viewsets.ModelViewSet):
     queryset = LotProduitPharmacie.objects.all()
     serializer_class = LotProduitPharmacieSerializer
 
     def get_queryset(self):
+        user = self.request.user
         queryset = LotProduitPharmacie.objects.all()
+
+        # ✅ Filtrer les lots selon la pharmacie de l'utilisateur connecté
+        if hasattr(user, 'pharmacie') and user.pharmacie:
+            queryset = queryset.filter(produit__pharmacie=user.pharmacie)
+        else:
+            # Si pas de pharmacie liée, on retourne un queryset vide
+            return LotProduitPharmacie.objects.none()
+
+        # 🔍 Filtres supplémentaires
         produit_id = self.request.query_params.get('produit')
         date_debut = self.request.query_params.get('date_debut')
         date_fin = self.request.query_params.get('date_fin')
-        date_max = self.request.query_params.get('date_max')  # <-- 🆕
+        date_max = self.request.query_params.get('date_max')
 
         if produit_id:
             queryset = queryset.filter(produit_id=produit_id)
@@ -1017,11 +1056,52 @@ class LotProduitPharmacieViewSet(viewsets.ModelViewSet):
         if date_max:
             try:
                 date_max_obj = datetime.strptime(date_max, '%Y-%m-%d').date()
-                queryset = queryset.filter(date_peremption__lte=date_max_obj)  # <-- 🆕
+                queryset = queryset.filter(date_peremption__lte=date_max_obj)
             except ValueError:
                 pass
 
         return queryset
+
+   
+def get_queryset(self):
+    try:
+        pharmacie = self.request.user.pharmacie
+    except ObjectDoesNotExist:
+        return LotProduitPharmacie.objects.none()
+
+    queryset = LotProduitPharmacie.objects.filter(pharmacie=pharmacie)
+
+    # reste inchangé
+    produit_id = self.request.query_params.get('produit')
+    date_debut = self.request.query_params.get('date_debut')
+    date_fin = self.request.query_params.get('date_fin')
+    date_max = self.request.query_params.get('date_max')
+
+    if produit_id:
+        queryset = queryset.filter(produit_id=produit_id)
+
+    if date_debut:
+        try:
+            date_debut_obj = datetime.strptime(date_debut, '%Y-%m-%d').date()
+            queryset = queryset.filter(date_entree__gte=date_debut_obj)
+        except ValueError:
+            pass
+
+    if date_fin:
+        try:
+            date_fin_obj = datetime.strptime(date_fin, '%Y-%m-%d').date()
+            queryset = queryset.filter(date_entree__lte=date_fin_obj)
+        except ValueError:
+            pass
+
+    if date_max:
+        try:
+            date_max_obj = datetime.strptime(date_max, '%Y-%m-%d').date()
+            queryset = queryset.filter(date_peremption__lte=date_max_obj)
+        except ValueError:
+            pass
+
+    return queryset
 
 ############# PUBLICITE MEDICAMENT #####################
 # views.py

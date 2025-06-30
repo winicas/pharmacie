@@ -169,7 +169,6 @@ const handleLogout = async () => {
       label: 'Produits',
       icon: '💊',
       submenu: [
-        { href: '/dashboard/pharmacie/nouvel-medicament-pharmacie', label: 'Ajouter un produit', icon: '➕' },
         { href: '/dashboard/pharmacie/nouvel-medicament-pharmacie/afficher-medicament', label: 'Liste des produits', icon: '📦' },
         { href: '/dashboard/pharmacie/nouveau-lot/', label: 'Liste de Lots des produits', icon: '📦' },
         { href: '/dashboard/pharmacie/produit-perimer/', label: 'Gestion de Peremption', icon: '📦' },
