@@ -219,11 +219,12 @@ const handleLogout = async () => {
       ],
       isTitle: true,
     },
+    //dashboard/pharmacie/client/afficher-client
     {
       label: 'Clients',
       icon: '🧑‍🤝‍🧑',
       submenu: [
-        { href: '/dashboard/pharmacie/client/afficher-client', label: 'Liste des clients', icon: '📁' },
+        { href: '#', label: 'Liste des clients', icon: '📁' },
         { href: '/dashboard/pharmacie/client/ajouter-client', label: 'Ajouter un client', icon: '➕' },
       ],
       isTitle: true,

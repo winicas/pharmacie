@@ -54,16 +54,26 @@ const HeaderPharmacie = ({ pharmacie, user }: HeaderPharmacieProps) => {
   };
 
   const handleLogout = async () => {
-    const refreshToken = localStorage.getItem("refreshToken");
-    try {
-      await axios.post("https://votre-api.com/logout/",  { refresh: refreshToken });
-    } catch (error) {
-      console.error("Erreur de déconnexion :", error);
+  const refreshToken = localStorage.getItem("refreshToken");
+
+  try {
+    if (refreshToken) {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/logout/`, {
+        refresh: refreshToken,
+      }, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`
+        }
+      });
     }
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    router.push("/login");
-  };
+  } catch (error) {
+    console.error("Erreur de déconnexion :", error);
+  }
+
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+  router.push("/login");
+};
 
   const toggleExpand = (label: string) => {
     setExpandedMenus(prev => ({ ...prev, [label]: !prev[label] }));
@@ -170,7 +180,7 @@ const HeaderPharmacie = ({ pharmacie, user }: HeaderPharmacieProps) => {
       label: "Clients",
       icon: "🧑‍🤝‍🧑",
       submenu: [
-        { href: "/dashboard/comptable/client/afficher-client", label: "Liste des clients", icon: "📁" },
+        { href: "#", label: "Liste des clients", icon: "📁" },
         { href: "/dashboard/comptable/client/ajouter-client", label: "Ajouter un client", icon: "➕" },
       ],
       isTitle: true,
