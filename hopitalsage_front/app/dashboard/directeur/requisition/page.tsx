@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 
-
 interface Pharmacie {
   id: number;
   nom_pharm: string;
@@ -50,6 +49,8 @@ export default function RequisitionPage() {
 
   const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
 
+  const API = process.env.NEXT_PUBLIC_API_BASE_URL;
+
   useEffect(() => {
     if (!accessToken) return;
 
@@ -69,11 +70,6 @@ export default function RequisitionPage() {
 
   useEffect(() => {
     if (!accessToken || !pharmacieId) return;
-
-    axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits-fabricants/`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }).then(res => setProduits(res.data));
-
     chargerRequisitions();
   }, [accessToken, pharmacieId]);
 
@@ -82,6 +78,24 @@ export default function RequisitionPage() {
       headers: { Authorization: `Bearer ${accessToken}` },
     }).then(res => setRequisitions(res.data));
   };
+
+  // 💡 Recherche dynamique (filtrée sur le serveur)
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setProduits([]);
+      return;
+    }
+
+    const delayDebounce = setTimeout(() => {
+      axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits-fabricants/?search=${searchTerm}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then(res => setProduits(res.data))
+      .catch(err => console.error("Erreur de recherche :", err));
+    }, 400); // délai anti-spam
+
+    return () => clearTimeout(delayDebounce);
+  }, [searchTerm]);
 
   const ajouterRequisition = (produit: any) => {
     const nom = produit.nom;
@@ -99,15 +113,15 @@ export default function RequisitionPage() {
     axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/requisitions/`, payload, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-      .then(() => {
-        chargerRequisitions();
-        setCustomNom('');
-        setMessageErreur('');
-      })
-      .catch(error => {
-        const errMsg = error.response?.data?.detail || "Erreur inconnue.";
-        setMessageErreur(errMsg);
-      });
+    .then(() => {
+      chargerRequisitions();
+      setCustomNom('');
+      setMessageErreur('');
+    })
+    .catch(error => {
+      const errMsg = error.response?.data?.detail || "Erreur inconnue.";
+      setMessageErreur(errMsg);
+    });
   };
 
   const supprimerRequisition = async (id: number) => {
@@ -147,18 +161,9 @@ export default function RequisitionPage() {
     }
   };
 
-  const filteredProduits = searchTerm.trim()
-    ? produits.filter((p) =>
-        p.nom.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : [];
-
   return (
     <div className="flex min-h-screen">
-   
       <div className="flex-1 flex flex-col">
-       
-
         <main className="min-h-screen bg-gray-100 p-8">
           <h1 className="text-3xl font-bold text-blue-700 mb-6">Réquisition de Médicaments</h1>
 
@@ -178,7 +183,6 @@ export default function RequisitionPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Formulaire */}
             <div>
               <input
                 className="w-full p-3 border rounded mb-4"
@@ -188,16 +192,18 @@ export default function RequisitionPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
 
-              {filteredProduits.length > 0 && (
+              {produits.length > 0 && (
                 <div className="grid grid-cols-1 gap-4 mb-6">
-                  {filteredProduits.slice(0, 10).map((p) => (
+                  {produits.slice(0, 10).map((p) => (
                     <button
                       key={p.id}
                       onClick={() => ajouterRequisition(p)}
                       className="p-3 bg-blue-100 hover:bg-blue-200 rounded text-left shadow"
                     >
                       <p className="font-semibold">{p.nom}</p>
-                      <p className="text-sm text-gray-600">Fabricant : {p.fabricant_nom}</p>
+                      <p className="text-sm text-gray-600">
+                        Fabricant : {p.fabricant_nom || "Non spécifié"}
+                      </p>
                     </button>
                   ))}
                 </div>
@@ -218,7 +224,6 @@ export default function RequisitionPage() {
               </button>
             </div>
 
-            {/* Liste */}
             <div>
               <h2 className="text-xl font-semibold mb-4 text-gray-700">📋 Liste des réquisitions</h2>
 

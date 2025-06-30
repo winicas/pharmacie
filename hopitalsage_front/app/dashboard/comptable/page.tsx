@@ -87,24 +87,31 @@ export default function RequisitionPage() {
   }, [accessToken]);
 
   useEffect(() => {
-    const fetchProduitsEtRequisitions = async () => {
-      if (!accessToken || !pharmacieId) return;
+  const fetchProduits = async () => {
+    if (!accessToken || searchTerm.trim().length < 2) {
+      setProduits([]);
+      return;
+    }
 
-      try {
-        const produitsRes = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits-fabricants/`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        setProduits(produitsRes.data);
+    try {
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits-fabricants/?search=${searchTerm}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      setProduits(res.data);
+    } catch (error: any) {
+      if (error.response?.status === 401) handle401();
+      else console.error("Erreur recherche produits :", error);
+    }
+  };
 
-        await chargerRequisitions();
-      } catch (error: any) {
-        if (error.response?.status === 401) handle401();
-        else console.error('Erreur de chargement des produits ou réquisitions :', error);
-      }
-    };
+  const timer = setTimeout(() => {
+    fetchProduits();
+  }, 400); // délai de 400ms après arrêt de frappe
 
-    fetchProduitsEtRequisitions();
-  }, [accessToken, pharmacieId]);
+  return () => clearTimeout(timer);
+}, [searchTerm]);
+
+
 
   const chargerRequisitions = async () => {
     try {

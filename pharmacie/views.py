@@ -13,10 +13,18 @@ class FabricantViewSet(viewsets.ModelViewSet):
         print("Requête reçue :", request.data)
         return super().create(request, *args, **kwargs)
     
+from rest_framework import viewsets, filters
+from rest_framework.permissions import IsAuthenticated
+from .models import ProduitFabricant
+from .serializers import ProduitFabricantSerializer
+
 class ProduitFabricantViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = ProduitFabricant.objects.all()
     serializer_class = ProduitFabricantSerializer
+    filter_backends = [filters.SearchFilter]  # ✅ Ajout
+    search_fields = ['nom', 'fabricant__nom']  # ✅ Champs pour la recherche
+
     def perform_create(self, serializer):
         serializer.save()
 
