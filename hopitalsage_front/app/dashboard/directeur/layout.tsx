@@ -9,6 +9,7 @@ interface Pharmacie {
   nom_pharm: string;
   adresse_pharm: string;
   telephone: string | null;
+  est_expiree: boolean; 
 }
 
 interface User {

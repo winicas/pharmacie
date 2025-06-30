@@ -24,6 +24,7 @@ interface PharmacieData {
   montant_mensuel: number;
   date_expiration: string | null;
   jours_restants: number;
+  est_expiree: boolean; 
 }
 
 interface User {
