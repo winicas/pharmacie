@@ -3,34 +3,35 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.utils import timezone
 from django.db import models
 from django.db import models
+from django.utils import timezone
+from datetime import timedelta
 
-from django.db import models
+from django.utils import timezone
+from datetime import timedelta
 
 class Pharmacie(models.Model):
-    nom_pharm = models.CharField(max_length=100, verbose_name="Nom de la pharmacie")
-    ville_pharm = models.CharField(max_length=50, verbose_name="Ville")
-    commune_pharm = models.CharField(max_length=50, verbose_name="Commune/Arrondissement")
-    adresse_pharm = models.TextField(verbose_name="Adresse détaillée")
-    rccm = models.CharField(max_length=20, unique=True, verbose_name="Numéro RCCM")
-    idnat = models.CharField(max_length=20, unique=True, verbose_name="Numéro IDNAT")
-    ni = models.CharField(max_length=20, verbose_name="Numéro National")
-    telephone = models.CharField(max_length=20, verbose_name="Téléphone")
+    nom_pharm = models.CharField(max_length=100)
+    ville_pharm = models.CharField(max_length=50)
+    commune_pharm = models.CharField(max_length=50)
+    adresse_pharm = models.TextField()
+    ni = models.CharField(max_length=20)
+    telephone = models.CharField(max_length=20)
     logo_pharm = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
 
-    # Géolocalisation
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    montant_mensuel = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
-    # Montant mensuel
-    montant_mensuel = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        verbose_name="Montant mensuel à payer",
-        default=0.00
-    )
+    is_active = models.BooleanField(default=True)
+    date_expiration = models.DateField(null=True, blank=True)
 
-    # Activation
-    is_active = models.BooleanField(default=True, verbose_name="Pharmacie active ?")
+    def jours_restants(self):
+        if self.date_expiration:
+            delta = self.date_expiration - timezone.now().date()
+            return max(delta.days, 0)
+        return 0
+    def est_expiree(self):
+        return self.date_expiration and self.date_expiration < timezone.now().date()
 
     def __str__(self):
         return self.nom_pharm

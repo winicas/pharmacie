@@ -13,6 +13,7 @@ interface Pharmacie {
   nom_pharm: string;
   adresse_pharm: string;
   telephone: string | null;
+  date_expiration?: string; // Ajouté pour calcul des jours restants
 }
 
 interface User {
@@ -27,8 +28,8 @@ interface User {
 }
 
 interface HeaderPharmacieProps {
-  pharmacie: Pharmacie | null; // Peut être null au début
-  user: User | null; // Peut être null au début
+  pharmacie: Pharmacie | null;
+  user: User | null;
 }
 
 type MenuItem = {
@@ -54,26 +55,25 @@ const HeaderPharmacie = ({ pharmacie, user }: HeaderPharmacieProps) => {
   };
 
   const handleLogout = async () => {
-  const refreshToken = localStorage.getItem("refreshToken");
-
-  try {
-    if (refreshToken) {
-      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/logout/`, {
-        refresh: refreshToken,
-      }, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`
-        }
-      });
+    const refreshToken = localStorage.getItem("refreshToken");
+    try {
+      if (refreshToken) {
+        await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/logout/`, {
+          refresh: refreshToken,
+        }, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Erreur de déconnexion :", error);
     }
-  } catch (error) {
-    console.error("Erreur de déconnexion :", error);
-  }
 
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
-  router.push("/login");
-};
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    router.push("/login");
+  };
 
   const toggleExpand = (label: string) => {
     setExpandedMenus(prev => ({ ...prev, [label]: !prev[label] }));
@@ -134,9 +134,7 @@ const HeaderPharmacie = ({ pharmacie, user }: HeaderPharmacieProps) => {
                 {item.submenu && (
                   <ChevronDown
                     size={16}
-                    className={`transition-transform ${
-                      expandedMenus[item.label] ? "rotate-180" : ""
-                    }`}
+                    className={`transition-transform ${expandedMenus[item.label] ? "rotate-180" : ""}`}
                   />
                 )}
               </div>
@@ -187,6 +185,16 @@ const HeaderPharmacie = ({ pharmacie, user }: HeaderPharmacieProps) => {
     },
   ];
 
+  // ✅ Calcul des jours restants
+  const joursRestants = (() => {
+    if (!pharmacie?.date_expiration) return null;
+    const expiration = new Date(pharmacie.date_expiration);
+    const today = new Date();
+    expiration.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    return Math.ceil((expiration.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  })();
+
   return (
     <motion.header
       initial={{ y: -50, opacity: 0 }}
@@ -220,6 +228,18 @@ const HeaderPharmacie = ({ pharmacie, user }: HeaderPharmacieProps) => {
             {openMenu === "clientUser" && renderMenu(clientUserMenuItems, "clientUser")}
           </AnimatePresence>
         </div>
+
+        {/* ✅ Affichage du nombre de jours restants */}
+        {joursRestants !== null && joursRestants > 0 && (
+          <div className="text-sm text-yellow-100 bg-yellow-600 px-3 py-1 rounded-lg ml-2">
+            ⏳ Il reste {joursRestants} jour(s) avant l’expiration
+          </div>
+        )}
+        {joursRestants !== null && joursRestants <= 0 && (
+          <div className="text-sm text-red-100 bg-red-600 px-3 py-1 rounded-lg ml-2">
+            ❌ Abonnement expiré
+          </div>
+        )}
       </div>
 
       {/* Nom de la pharmacie centré */}
@@ -232,7 +252,7 @@ const HeaderPharmacie = ({ pharmacie, user }: HeaderPharmacieProps) => {
       {/* Infos utilisateur à droite */}
       <div className="flex items-center gap-4">
         <Image
-          src={user?.profile_picture || '/avatar.jpg'} // Image par défaut
+          src={user?.profile_picture || '/avatar.jpg'}
           alt="Photo de profil"
           width={42}
           height={42}

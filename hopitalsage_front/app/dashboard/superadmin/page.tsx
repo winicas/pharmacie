@@ -21,12 +21,11 @@ interface Pharmacie {
   ville_pharm: string;
   commune_pharm: string;
   adresse_pharm: string;
-  rccm: string;
-  idnat: string;
   ni: string;
   telephone: string;
   logo?: string;
   is_active: boolean;
+  date_expiration?: string;
 }
 
 const ITEMS_PER_PAGE = 5;
@@ -77,37 +76,49 @@ const SuperAdminDashboard = () => {
     fetchPharmacies();
   }, []);
 
-  const handleDelete = async (id: number, name: string) => {
-    const confirmDelete = confirm(`Voulez-vous vraiment supprimer "${name}" ?`);
-    if (!confirmDelete) return;
+  const handleDateChange = async (id: number, newDate: string) => {
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken) return;
 
     try {
-      const accessToken = localStorage.getItem('accessToken');
-      if (!accessToken) return;
-
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacies/${id}/`, {
-        method: 'DELETE',
+        method: 'PATCH',
         headers: {
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
+        body: JSON.stringify({ date_expiration: newDate }),
       });
 
       if (response.ok) {
-        toast.success(`Pharmacie "${name}" supprimée`);
-        setPharmacies((prev) => prev.filter((p) => p.id !== id));
+        toast.success('Date mise à jour');
+        setPharmacies((prev) =>
+          prev.map((p) => (p.id === id ? { ...p, date_expiration: newDate } : p))
+        );
       } else {
-        toast.error('Échec de la suppression');
+        toast.error('Erreur lors de la mise à jour de la date');
       }
     } catch (error) {
-      toast.error('Erreur réseau lors de la suppression');
+      toast.error('Erreur réseau');
     }
   };
 
-  const handleToggleActivation = async (id: number, isActive: boolean) => {
-    try {
-      const accessToken = localStorage.getItem('accessToken');
-      if (!accessToken) return;
+  const addThirtyDays = (dateStr?: string): string => {
+    const date = dateStr ? new Date(dateStr) : new Date();
+    date.setDate(date.getDate() + 30);
+    return date.toISOString().split('T')[0];
+  };
 
+  const handleAdd30Days = (id: number, currentDate?: string) => {
+    const newDate = addThirtyDays(currentDate);
+    handleDateChange(id, newDate);
+  };
+
+  const handleToggleActivation = async (id: number, isActive: boolean) => {
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken) return;
+
+    try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacies/${id}/`, {
         method: 'PATCH',
         headers: {
@@ -136,8 +147,11 @@ const SuperAdminDashboard = () => {
   const currentPharmacies = pharmacies.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   const totalPages = Math.ceil(pharmacies.length / ITEMS_PER_PAGE);
 
-  const paginate = (page: number) => {
-    setCurrentPage(page);
+  const paginate = (page: number) => setCurrentPage(page);
+
+  const isExpired = (dateStr?: string): boolean => {
+    if (!dateStr) return false;
+    return new Date(dateStr) < new Date();
   };
 
   if (loading || !user) {
@@ -174,32 +188,6 @@ const SuperAdminDashboard = () => {
           </motion.h1>
 
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6"
-          >
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              className="card shadow-lg border-0 p-6 bg-white dark:bg-zinc-800 rounded-xl"
-            >
-              <h5 className="text-xl font-bold text-[#007BFF]">
-                Créer Pharmacie
-              </h5>
-              <p className="text-gray-600 dark:text-gray-300">
-                Ajoutez une nouvelle pharmacie au système.
-              </p>
-              <a
-                href="/dashboard/superadmin/create_pharmacie"
-                className="block mt-4 py-2 px-4 rounded-md bg-[#007BFF] text-white hover:bg-[#0056b3] transition-colors"
-              >
-                Créer Pharmacie
-              </a>
-            </motion.div>
-          </motion.div>
-
-          {/* Liste */}
-          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
@@ -215,50 +203,63 @@ const SuperAdminDashboard = () => {
                   <TableHead>Commune</TableHead>
                   <TableHead>Adresse</TableHead>
                   <TableHead>Téléphone</TableHead>
-                  <TableHead>RCCM</TableHead>
-                  <TableHead>IDNAT</TableHead>
+                  <TableHead>Expiration</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {currentPharmacies.length > 0 ? (
-                  currentPharmacies.map((pharmacie) => (
-                    <TableRow key={pharmacie.id}>
-                      <TableCell>{pharmacie.nom_pharm}</TableCell>
-                      <TableCell>{pharmacie.commune_pharm}</TableCell>
-                      <TableCell>{pharmacie.adresse_pharm}</TableCell>
-                      <TableCell>{pharmacie.telephone}</TableCell>
-                      <TableCell>{pharmacie.rccm}</TableCell>
-                      <TableCell>{pharmacie.idnat}</TableCell>
-                      <TableCell className="space-y-1 space-x-1">
-                        <a
-                          href={`/dashboard/superadmin/edit-pharmacie/${pharmacie.id}`}
-                          className="inline-block py-1 px-2 rounded-md bg-[#FFC107] text-white hover:bg-[#e0a800]"
-                        >
-                          Modifier
-                        </a>
-                        <button
-                          onClick={() => handleDelete(pharmacie.id, pharmacie.nom_pharm)}
-                          className="inline-block py-1 px-2 rounded-md bg-[#DC3545] text-white hover:bg-[#bd2130]"
-                        >
-                          Supprimer
-                        </button>
-                        <button
-                          onClick={() => handleToggleActivation(pharmacie.id, pharmacie.is_active)}
-                          className={`inline-block py-1 px-2 rounded-md ${
-                            pharmacie.is_active
-                              ? 'bg-gray-500 hover:bg-gray-700'
-                              : 'bg-green-600 hover:bg-green-800'
-                          } text-white`}
-                        >
-                          {pharmacie.is_active ? 'Désactiver' : 'Activer'}
-                        </button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  currentPharmacies.map((pharmacie) => {
+                    const expired = isExpired(pharmacie.date_expiration);
+                    return (
+                      <TableRow
+                        key={pharmacie.id}
+                        className={expired ? 'bg-red-100 dark:bg-red-900' : ''}
+                      >
+                        <TableCell>{pharmacie.nom_pharm}</TableCell>
+                        <TableCell>{pharmacie.commune_pharm}</TableCell>
+                        <TableCell>{pharmacie.adresse_pharm}</TableCell>
+                        <TableCell>{pharmacie.telephone}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-2">
+                            <input
+                              type="date"
+                              value={pharmacie.date_expiration?.split('T')[0] || ''}
+                              onChange={(e) =>
+                                handleDateChange(pharmacie.id, e.target.value)
+                              }
+                              className="border rounded px-2 py-1 text-sm"
+                            />
+                            <button
+                              onClick={() =>
+                                handleAdd30Days(pharmacie.id, pharmacie.date_expiration)
+                              }
+                              className="text-xs text-blue-600 underline"
+                            >
+                              Ajouter 30 jours
+                            </button>
+                          </div>
+                        </TableCell>
+                        <TableCell className="space-y-1 space-x-1">
+                          <button
+                            onClick={() =>
+                              handleToggleActivation(pharmacie.id, pharmacie.is_active)
+                            }
+                            className={`inline-block py-1 px-2 rounded-md ${
+                              pharmacie.is_active
+                                ? 'bg-gray-500 hover:bg-gray-700'
+                                : 'bg-green-600 hover:bg-green-800'
+                            } text-white`}
+                          >
+                            {pharmacie.is_active ? 'Désactiver' : 'Activer'}
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center">
+                    <TableCell colSpan={6} className="text-center">
                       Aucune pharmacie trouvée
                     </TableCell>
                   </TableRow>
@@ -266,7 +267,6 @@ const SuperAdminDashboard = () => {
               </TableBody>
             </Table>
 
-            {/* Pagination */}
             <div className="flex justify-center mt-4 space-x-2">
               {Array.from({ length: totalPages }, (_, i) => (
                 <button

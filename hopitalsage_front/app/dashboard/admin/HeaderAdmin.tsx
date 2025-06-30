@@ -76,6 +76,14 @@ const HeaderAdmin = ({ user }: { user: User }) => {
       ],
     },
     {
+      label: 'Pharmacie Liste',
+      icon: '📊',
+      submenu: [
+        { label: 'Liste des pharmacie', href: '/dashboard/admin/liste_pharmacie', icon: '📈' },
+        { label: 'Rapport', href: '#', icon: '📅' },
+      ],
+    },
+    {
       label: 'Historique',
       icon: '📊',
       submenu: [

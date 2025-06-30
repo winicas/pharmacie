@@ -26,8 +26,10 @@ from .models import Pharmacie, User
 from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
 from .models import Pharmacie
-
 class PharmacieSerializer(serializers.ModelSerializer):
+    est_expiree = serializers.SerializerMethodField()
+    jours_restants = serializers.SerializerMethodField()  # ✅ ajouté ici
+
     class Meta:
         model = Pharmacie
         fields = [
@@ -36,8 +38,6 @@ class PharmacieSerializer(serializers.ModelSerializer):
             'ville_pharm',
             'commune_pharm',
             'adresse_pharm',
-            'rccm',
-            'idnat',
             'ni',
             'telephone',
             'logo_pharm',
@@ -45,8 +45,18 @@ class PharmacieSerializer(serializers.ModelSerializer):
             'latitude',
             'longitude',
             'montant_mensuel',
+            'date_expiration',
+            'est_expiree',
+            'jours_restants',  # ✅ inclure dans l’API
         ]
-        read_only_fields = ['id']
+
+    def get_est_expiree(self, obj):
+        return obj.est_expiree()
+
+    def get_jours_restants(self, obj):
+        return obj.jours_restants()
+
+
 
 # serializers.py
 from rest_framework import serializers

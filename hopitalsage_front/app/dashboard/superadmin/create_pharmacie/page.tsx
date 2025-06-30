@@ -1,4 +1,5 @@
 'use client';
+
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Head from 'next/head';
@@ -19,54 +20,58 @@ export default function CreerPharmacie() {
     montant_mensuel: '',
     latitude: -1.2921,
     longitude: 36.8219,
+    date_expiration: '', // ➕ champ ajouté
   });
 
- const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  // 🔐 Récupérer et valider le token d'abord
-  const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('accessToken');
+    if (!token || token === 'undefined' || token === 'null') {
+      alert("Votre session a expiré. Veuillez vous reconnecter.");
+      router.push('/login');
+      return;
+    }
 
-  if (!token || token === 'undefined' || token === 'null') {
-    alert("Votre session a expiré. Veuillez vous reconnecter.");
-    router.push('/login'); // ou la route appropriée
-    return;
-  }
+    // 👉 Ajouter 30 jours si non défini
+    if (!formData.date_expiration) {
+      const today = new Date();
+      today.setDate(today.getDate() + 30);
+      formData.date_expiration = today.toISOString().split('T')[0];
+    }
 
-  const data = new FormData();
-  Object.entries(formData).forEach(([key, value]) => {
-    data.append(key, String(value));
-  });
-
-  if (logoFile) {
-    data.append('logo_pharm', logoFile);
-  }
-
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacies/`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        // ⚠️ NE PAS mettre 'Content-Type' avec FormData, sinon le `boundary` est cassé
-      },
-      body: data,
+    const data = new FormData();
+    Object.entries(formData).forEach(([key, value]) => {
+      data.append(key, String(value));
     });
 
-    if (response.ok) {
-      router.push('/dashboard/superadmin');
-    } else {
-      const error = await response.json();
-      console.error('Erreur serveur:', error);
-      if (error?.code === 'token_not_valid') {
-        alert("Votre session est expirée. Veuillez vous reconnecter.");
-        router.push('/login');
-      }
+    if (logoFile) {
+      data.append('logo_pharm', logoFile);
     }
-  } catch (error) {
-    console.error('Erreur création:', error);
-  }
-};
 
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacies/`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: data,
+      });
+
+      if (response.ok) {
+        router.push('/dashboard/superadmin');
+      } else {
+        const error = await response.json();
+        console.error('Erreur serveur:', error);
+        if (error?.code === 'token_not_valid') {
+          alert("Votre session est expirée. Veuillez vous reconnecter.");
+          router.push('/login');
+        }
+      }
+    } catch (error) {
+      console.error('Erreur création:', error);
+    }
+  };
 
   return (
     <>
@@ -121,6 +126,24 @@ export default function CreerPharmacie() {
             placeholder="Montant mensuel à payer"
             required
           />
+
+          {/* 📅 Date d’expiration */}
+          <div>
+            <label className="block mb-1 text-sm font-medium text-gray-700">
+              Date d'expiration (optionnelle)
+            </label>
+            <input
+              type="date"
+              name="date_expiration"
+              value={formData.date_expiration}
+              onChange={(e) => setFormData({ ...formData, date_expiration: e.target.value })}
+              className="w-full p-3 border rounded-lg"
+              placeholder="Date d'expiration"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Si vide, la date sera définie automatiquement à 30 jours après aujourd’hui.
+            </p>
+          </div>
 
           {/* Upload logo */}
           <div>

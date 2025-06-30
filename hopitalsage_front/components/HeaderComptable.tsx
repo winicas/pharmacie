@@ -1,8 +1,6 @@
 'use client';
 
-//import { LogOut, ChevronDown } from 'lucide-react';
-import { LogOut, ChevronDown, UserCircle } from 'lucide-react'; // ✅ ajoute UserCircle
-
+import { LogOut, ChevronDown, UserCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
@@ -15,6 +13,8 @@ interface Pharmacie {
   nom_pharm: string;
   adresse_pharm: string;
   telephone: string | null;
+  date_expiration?: string;
+  est_expiree: boolean;
 }
 
 interface User {
@@ -43,28 +43,27 @@ const HeaderPharmacie = ({ pharmacie, user }: HeaderPharmacieProps) => {
     clientUser: useRef<HTMLDivElement>(null),
   };
 
-const handleLogout = async () => {
-  const refreshToken = localStorage.getItem("refreshToken");
+  const handleLogout = async () => {
+    const refreshToken = localStorage.getItem("refreshToken");
 
-  try {
-    if (refreshToken) {
-      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/logout/`, {
-        refresh: refreshToken,
-      }, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`
-        }
-      });
+    try {
+      if (refreshToken) {
+        await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/logout/`, {
+          refresh: refreshToken,
+        }, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Erreur de déconnexion :", error);
     }
-  } catch (error) {
-    console.error("Erreur de déconnexion :", error);
-  }
 
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
-  router.push("/login");
-};
-
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    router.push("/login");
+  };
 
   const toggleExpand = (label: string) => {
     setExpandedMenus(prev => ({ ...prev, [label]: !prev[label] }));
@@ -137,9 +136,7 @@ const handleLogout = async () => {
                 {item.submenu && (
                   <ChevronDown
                     size={16}
-                    className={`transition-transform ${
-                      expandedMenus[item.label] ? 'rotate-180' : ''
-                    }`}
+                    className={`transition-transform ${expandedMenus[item.label] ? 'rotate-180' : ''}`}
                   />
                 )}
               </div>
@@ -219,7 +216,6 @@ const handleLogout = async () => {
       ],
       isTitle: true,
     },
-    //dashboard/pharmacie/client/afficher-client
     {
       label: 'Clients',
       icon: '🧑‍🤝‍🧑',
@@ -229,8 +225,21 @@ const handleLogout = async () => {
       ],
       isTitle: true,
     },
-   
   ];
+
+  // ✅ Calculer les jours restants dynamiquement
+  const joursRestants = (() => {
+    if (!pharmacie.date_expiration) return null;
+
+    const expirationDate = new Date(pharmacie.date_expiration);
+    const today = new Date();
+
+    expirationDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    const diff = expirationDate.getTime() - today.getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  })();
 
   return (
     <motion.header
@@ -238,7 +247,6 @@ const handleLogout = async () => {
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.7 }}
       className="sticky top-0 z-40 flex justify-between items-center px-8 py-5 bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-700 dark:from-emerald-900 dark:via-emerald-800 dark:to-emerald-700 shadow-md backdrop-blur-md"
-
     >
       <div className="flex items-center gap-4">
         <div className="relative">
@@ -264,29 +272,35 @@ const handleLogout = async () => {
             {openMenu === 'clientUser' && renderMenu(clientUserMenuItems, 'clientUser')}
           </AnimatePresence>
         </div>
+
+        {/* ✅ Affichage des jours restants */}
+        {joursRestants !== null && !pharmacie.est_expiree && (
+          <div className="text-sm text-yellow-200 bg-yellow-700 px-3 py-1 rounded-lg ml-4">
+            ⏳ Il reste {joursRestants} jour(s) avant l’expiration
+          </div>
+        )}
+        {pharmacie.est_expiree && (
+          <div className="text-sm text-red-100 bg-red-600 px-3 py-1 rounded-lg ml-4">
+            ❌ Abonnement expiré
+          </div>
+        )}
       </div>
-      {/* User Info + Déconnexion */}
+
+      {/* User + profil */}
       <div className="flex items-center gap-4 text-white">
         {user.profile_picture && (
           <Image
-  src={
-          user.profile_picture
-            ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${user.profile_picture}`
-            : '/avatar.png'
-        }
-        alt="Photo de profil"
-        width={40}
-        height={40}
-        className="rounded-full"
-      />
-
-
+            src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${user.profile_picture}`}
+            alt="Photo de profil"
+            width={40}
+            height={40}
+            className="rounded-full"
+          />
         )}
-        {/* 🔧 Lien vers la page de modification de profil */}
         <Link href="#" className="hover:text-yellow-300">
           <UserCircle size={22} />
         </Link>
-                <div className="text-sm font-medium">{user.first_name} {user.last_name}</div>
+        <div className="text-sm font-medium">{user.first_name} {user.last_name}</div>
         <button onClick={handleLogout} className="hover:text-red-300">
           <LogOut size={20} />
         </button>
