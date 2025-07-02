@@ -582,6 +582,9 @@ from rest_framework import viewsets
 from .models import Requisition
 from .serializers import RequisitionSerializer
 
+from rest_framework import status, viewsets
+from rest_framework.response import Response
+
 class RequisitionViewSet(viewsets.ModelViewSet):
     serializer_class = RequisitionSerializer
 
@@ -596,6 +599,32 @@ class RequisitionViewSet(viewsets.ModelViewSet):
         pharmacie = request.data.get('pharmacie')
         produit_fabricant = request.data.get('produit_fabricant')
         nom_personnalise = request.data.get('nom_personnalise')
+
+        # 🔍 Vérification des champs obligatoires
+        if not pharmacie:
+            return Response(
+                {"detail": "Le champ 'pharmacie' est obligatoire."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            pharmacie = int(pharmacie)  # On force le type
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "Le champ 'pharmacie' doit être un entier valide."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 📦 Tente de récupérer la pharmacie pour vérifier qu'elle existe
+        try:
+            Pharmacie.objects.get(id=pharmacie)
+        except Pharmacie.DoesNotExist:
+            return Response(
+                {"detail": "La pharmacie spécifiée n'existe pas."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ✅ À partir d'ici, on sait que pharmacie est valide
 
         try:
             if produit_fabricant:
@@ -622,13 +651,16 @@ class RequisitionViewSet(viewsets.ModelViewSet):
                 serializer = self.get_serializer(obj)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-            return Response({"detail": "Aucun produit ou nom personnalisé fourni."},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Aucun produit ou nom personnalisé fourni."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
+            return Response(
+                {"detail": f"Erreur interne : {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 # views.py
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
