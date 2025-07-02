@@ -585,46 +585,35 @@ from .serializers import RequisitionSerializer
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+
+from .models import Requisition, Pharmacie
+from .serializers import RequisitionSerializer
+
 class RequisitionViewSet(viewsets.ModelViewSet):
     serializer_class = RequisitionSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        pharmacie_id = self.request.query_params.get('pharmacie')
-        queryset = Requisition.objects.all()
-        if pharmacie_id is not None:
-            queryset = queryset.filter(pharmacie_id=pharmacie_id)
-        return queryset
+        user = self.request.user
+        if hasattr(user, "pharmacie") and user.pharmacie:
+            return Requisition.objects.filter(pharmacie=user.pharmacie)
+        return Requisition.objects.none()
 
     def create(self, request, *args, **kwargs):
-        pharmacie = request.data.get('pharmacie')
+        user = request.user
+
+        if not hasattr(user, "pharmacie") or not user.pharmacie:
+            return Response(
+                {"detail": "Utilisateur non lié à une pharmacie."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        pharmacie = user.pharmacie.id
         produit_fabricant = request.data.get('produit_fabricant')
         nom_personnalise = request.data.get('nom_personnalise')
-
-        # 🔍 Vérification des champs obligatoires
-        if not pharmacie:
-            return Response(
-                {"detail": "Le champ 'pharmacie' est obligatoire."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            pharmacie = int(pharmacie)  # On force le type
-        except (TypeError, ValueError):
-            return Response(
-                {"detail": "Le champ 'pharmacie' doit être un entier valide."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # 📦 Tente de récupérer la pharmacie pour vérifier qu'elle existe
-        try:
-            Pharmacie.objects.get(id=pharmacie)
-        except Pharmacie.DoesNotExist:
-            return Response(
-                {"detail": "La pharmacie spécifiée n'existe pas."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # ✅ À partir d'ici, on sait que pharmacie est valide
 
         try:
             if produit_fabricant:
@@ -636,6 +625,7 @@ class RequisitionViewSet(viewsets.ModelViewSet):
                 if not created:
                     obj.nombre_demandes += 1
                     obj.save()
+
                 serializer = self.get_serializer(obj)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -648,6 +638,7 @@ class RequisitionViewSet(viewsets.ModelViewSet):
                 if not created:
                     obj.nombre_demandes += 1
                     obj.save()
+
                 serializer = self.get_serializer(obj)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -661,6 +652,7 @@ class RequisitionViewSet(viewsets.ModelViewSet):
                 {"detail": f"Erreur interne : {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
 # views.py
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
