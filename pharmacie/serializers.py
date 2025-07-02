@@ -87,7 +87,6 @@ class ProduitPharmacieSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['pharmacie', 'prix_achat', 'prix_vente', 'quantite']
 
-
 # serializers.py
 from rest_framework import serializers
 from .models import LotProduitPharmacie
@@ -108,7 +107,6 @@ class LotProduitPharmacieSerializer(serializers.ModelSerializer):
             'prix_achat',
             'prix_vente'
         ]
-
 
 from rest_framework import serializers
 from .models import ProduitFabricant
@@ -689,17 +687,26 @@ class ProduitAlerteSerializer(serializers.ModelSerializer):
             return 'warning'
         return None
 
+# monapp/serializers.py
+
+from rest_framework import serializers
+from .models import Requisition, ProduitFabricant
+
 class RequisitionSerializer(serializers.ModelSerializer):
     nom_produit = serializers.SerializerMethodField()
     fabricant_nom = serializers.SerializerMethodField()
     prix_achat = serializers.SerializerMethodField()
-    produit_fabricant_id = serializers.IntegerField(source='produit_fabricant.id', read_only=True)  # Ajout de l'ID
+    produit_fabricant_id = serializers.IntegerField(source='produit_fabricant.id', read_only=True)
+
+    # 🔁 Champ pharmacie ajouté ici 👇
+    pharmacie = serializers.PrimaryKeyRelatedField(queryset=Pharmacie.objects.all())
 
     class Meta:
         model = Requisition
         fields = [
             'id',
-            'produit_fabricant_id',  # Nouveau champ
+            'pharmacie',  # ✅ Obligatoire
+            'produit_fabricant_id',
             'produit_fabricant',
             'nom_personnalise',
             'nombre_demandes',
@@ -707,6 +714,25 @@ class RequisitionSerializer(serializers.ModelSerializer):
             'fabricant_nom',
             'prix_achat',
         ]
+
+    def validate(self, data):
+        """
+        Valide qu'au moins l'un des deux champs est présent :
+        - produit_fabricant ou
+        - nom_personnalise
+        """
+        if not data.get('produit_fabricant') and not data.get('nom_personnalise'):
+            raise serializers.ValidationError({
+                'non_field_errors': "Vous devez fournir soit un produit fabricant, soit un nom personnalisé."
+            })
+
+        # ✅ Vérifie que la pharmacie est présente
+        if not data.get('pharmacie'):
+            raise serializers.ValidationError({
+                'pharmacie': "Ce champ ne peut pas être vide."
+            })
+
+        return data
 
     def get_nom_produit(self, obj):
         if obj.nom_personnalise:
@@ -724,7 +750,6 @@ class RequisitionSerializer(serializers.ModelSerializer):
         if obj.produit_fabricant and hasattr(obj.produit_fabricant, 'prix_achat'):
             return obj.produit_fabricant.prix_achat
         return None
-
 # serializers.py
 class RendezVousSerializer(serializers.ModelSerializer):
     class Meta:
