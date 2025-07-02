@@ -1,3 +1,5 @@
+// frontend/components/RequisitionPage.tsx
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -46,19 +48,21 @@ export default function RequisitionPage() {
   const [pharmacieId, setPharmacieId] = useState<number | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [pharmacie, setPharmacie] = useState<Pharmacie | null>(null);
+  const [isLoadingSearch, setIsLoadingSearch] = useState(false);
 
   const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-
   const API = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+  const PAGE_SIZE = 20; // Limite affichée à l'écran
 
   useEffect(() => {
     if (!accessToken) return;
 
-    axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/me/`, {
+    axios.get(`${API}/api/user/me/`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     }).then(res => setUser(res.data));
 
-    axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacie/`, {
+    axios.get(`${API}/api/pharmacie/`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     }).then(res => {
       if (res.data.length > 0) {
@@ -74,7 +78,7 @@ export default function RequisitionPage() {
   }, [accessToken, pharmacieId]);
 
   const chargerRequisitions = () => {
-    axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/requisitions/?pharmacie=${pharmacieId}`, {
+    axios.get(`${API}/api/requisitions/?pharmacie=${pharmacieId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     }).then(res => setRequisitions(res.data));
   };
@@ -86,12 +90,19 @@ export default function RequisitionPage() {
       return;
     }
 
+    if (searchTerm.trim().length < 2) {
+      setProduits([]);
+      return;
+    }
+
     const delayDebounce = setTimeout(() => {
-      axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits-fabricants/?search=${searchTerm}`, {
+      setIsLoadingSearch(true);
+      axios.get(`${API}/api/produits-fabricants/?search=${searchTerm}&page_size=${PAGE_SIZE}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
-      .then(res => setProduits(res.data))
-      .catch(err => console.error("Erreur de recherche :", err));
+        .then(res => setProduits(res.data.results || []))
+        .catch(err => console.error("Erreur de recherche :", err))
+        .finally(() => setIsLoadingSearch(false));
     }, 400); // délai anti-spam
 
     return () => clearTimeout(delayDebounce);
@@ -110,18 +121,18 @@ export default function RequisitionPage() {
       ...(produit.id ? { produit_fabricant: produit.id } : { nom_personnalise: nom }),
     };
 
-    axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/requisitions/`, payload, {
+    axios.post(`${API}/api/requisitions/`, payload, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-    .then(() => {
-      chargerRequisitions();
-      setCustomNom('');
-      setMessageErreur('');
-    })
-    .catch(error => {
-      const errMsg = error.response?.data?.detail || "Erreur inconnue.";
-      setMessageErreur(errMsg);
-    });
+      .then(() => {
+        chargerRequisitions();
+        setCustomNom('');
+        setMessageErreur('');
+      })
+      .catch(error => {
+        const errMsg = error.response?.data?.detail || "Erreur inconnue.";
+        setMessageErreur(errMsg);
+      });
   };
 
   const supprimerRequisition = async (id: number) => {
@@ -129,7 +140,7 @@ export default function RequisitionPage() {
 
     if (confirm("Supprimer cette réquisition ?")) {
       try {
-        await axios.delete(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/requisitions/${id}/`, {
+        await axios.delete(`${API}/api/requisitions/${id}/`, {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
@@ -144,7 +155,7 @@ export default function RequisitionPage() {
 
   const incrementerDemande = async (id: number) => {
     try {
-      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/requisitions/${id}/incrementer/`, null, {
+      await axios.post(`${API}/api/requisitions/${id}/incrementer/`, null, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
@@ -192,9 +203,11 @@ export default function RequisitionPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
 
+              {isLoadingSearch && <p>Chargement...</p>}
+
               {produits.length > 0 && (
                 <div className="grid grid-cols-1 gap-4 mb-6">
-                  {produits.slice(0, 10).map((p) => (
+                  {produits.map((p) => (
                     <button
                       key={p.id}
                       onClick={() => ajouterRequisition(p)}

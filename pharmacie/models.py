@@ -3,7 +3,7 @@ from comptes.models import Pharmacie, User
 
 # 1. Fabricant
 class Fabricant(models.Model):
-    nom = models.CharField(max_length=255)
+    nom = models.CharField(max_length=255, db_index=True)
     pays_origine = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
@@ -39,8 +39,8 @@ class ProduitFabricant(models.Model):
         ('CDF', 'Franc congolais'),
     )
 
-    fabricant = models.ForeignKey(Fabricant, on_delete=models.CASCADE, related_name='produits')
-    nom = models.CharField(max_length=255)
+    fabricant = models.ForeignKey(Fabricant, on_delete=models.CASCADE, related_name='produits',db_index=True)
+    nom = models.CharField(max_length=255, db_index=True)
     prix_achat = models.DecimalField(max_digits=10, decimal_places=5)
     devise = models.CharField(max_length=3, choices=DEVISES, default='CDF')
     nombre_plaquettes_par_boite = models.PositiveIntegerField(default=1)  # 👈 Ajout important

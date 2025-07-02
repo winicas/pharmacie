@@ -18,16 +18,29 @@ from rest_framework.permissions import IsAuthenticated
 from .models import ProduitFabricant
 from .serializers import ProduitFabricantSerializer
 
+from rest_framework.pagination import PageNumberPagination
+
+# backend/monapp/views.py
+
+from rest_framework import viewsets, filters
+from rest_framework.pagination import PageNumberPagination
+from .models import ProduitFabricant
+from .serializers import ProduitFabricantSerializer
+
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 200
+
 class ProduitFabricantViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
     queryset = ProduitFabricant.objects.all()
     serializer_class = ProduitFabricantSerializer
-    filter_backends = [filters.SearchFilter]  # ✅ Ajout
-    search_fields = ['nom', 'fabricant__nom']  # ✅ Champs pour la recherche
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['nom', 'fabricant__nom']  # ✅ Utilise les champs indexés
 
     def perform_create(self, serializer):
         serializer.save()
-
 class TauxChangeViewSet(viewsets.ModelViewSet):
     queryset = TauxChange.objects.all().order_by('-date')  # Le plus récent en haut
     serializer_class = TauxChangeSerializer
