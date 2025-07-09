@@ -113,16 +113,16 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-from decouple import config
+
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('POSTGRES_DB'),
-        'USER': config('POSTGRES_USER'),
-        'PASSWORD': config('POSTGRES_PASSWORD'),
-        'HOST': config('POSTGRES_HOST', default='localhost'),
-        'PORT': config('POSTGRES_PORT', default='5432'),
+        'NAME': 'jornicapham1',
+        'USER': 'jornicapham1_user',
+        'PASSWORD': 'OeFArAPsCiZrVWBaDOLygEMqF0y03exU',
+        'HOST': 'dpg-d1d86qvdiees73ckm9i0-a',
+        'PORT': '5432',
     },
     'remote': {
         'ENGINE': 'django.db.backends.postgresql',
