@@ -25,27 +25,42 @@ REMOTE = connections['remote']
 
 # Liste des modèles à synchroniser dans l'ordre des dépendances
 MODELS = [
-    User,
-    Pharmacie,
+    # 1. Utilisateurs et établissements
+    User,                        # utilisé partout (vente, réception…)
+    Pharmacie,                   # utilisé dans produits, clients, ventes…
+    
+    # 2. Éléments indépendants
     TauxChange,
     Fabricant,
     DepotPharmaceutique,
-    ProduitFabricant,
-    ProduitPharmacie,
-    LotProduitPharmacie,
-    CommandeProduit,
-    CommandeProduitLigne,
-    ReceptionProduit,
-    ReceptionLigne,
-    Client,
-    VenteProduit,
-    VenteLigne,
-    ClientPurchase,
-    MedicalExam,
-    Prescription,
-    Requisition,
-    RendezVous,
-    PublicitePharmacie,
+    
+    # 3. Produits
+    ProduitFabricant,           # dépend de Fabricant
+    ProduitPharmacie,           # dépend de ProduitFabricant et Pharmacie
+    LotProduitPharmacie,        # dépend de ProduitPharmacie
+    
+    # 4. Commandes
+    CommandeProduit,            # dépend de Pharmacie, Fabricant
+    CommandeProduitLigne,       # dépend de CommandeProduit, ProduitFabricant
+    
+    # 5. Réceptions
+    ReceptionProduit,           # dépend de CommandeProduit, User
+    ReceptionLigne,             # dépend de ReceptionProduit, CommandeProduitLigne
+    
+    # 6. Clients et ventes
+    Client,                     # dépend de Pharmacie
+    VenteProduit,               # dépend de Client, User, Pharmacie
+    VenteLigne,                 # dépend de VenteProduit, ProduitPharmacie
+    ClientPurchase,             # dépend de Client, ProduitPharmacie
+    
+    # 7. Examens, ordonnances et requêtes
+    MedicalExam,                # dépend de Client
+    Prescription,               # dépend de Client, ProduitFabricant
+    Requisition,                # dépend de ProduitFabricant, Pharmacie
+    
+    # 8. Autres
+    RendezVous,                 # dépend de Client
+    PublicitePharmacie,         # dépend de rien, mais affiche logo pharmacie
 ]
 
 
