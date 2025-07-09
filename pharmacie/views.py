@@ -564,31 +564,22 @@ def rapport_general(request):
         "produit_plus_vendu": produit_plus_vendu['produit__nom_medicament'] if produit_plus_vendu else "Aucun"
     })
 
-
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-
-
-# views.py
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from .models import Requisition
 from .serializers import RequisitionSerializer, ClientRendezvousSerializer
-
 from rest_framework import viewsets
 from .models import Requisition
 from .serializers import RequisitionSerializer
-
 from rest_framework import status, viewsets
 from rest_framework.response import Response
-
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-
 from .models import Requisition, Pharmacie
 from .serializers import RequisitionSerializer
 
@@ -1046,7 +1037,6 @@ from datetime import datetime
 from rest_framework import viewsets
 from .models import LotProduitPharmacie
 from .serializers import LotProduitPharmacieSerializer
-
 from django.core.exceptions import ObjectDoesNotExist
 from datetime import datetime
 from rest_framework.permissions import IsAuthenticated
@@ -1054,11 +1044,12 @@ from rest_framework import viewsets
 from .models import LotProduitPharmacie
 from .serializers import LotProduitPharmacieSerializer
 from django.core.exceptions import ObjectDoesNotExist
-
 from rest_framework import viewsets
 from datetime import datetime
 from .models import LotProduitPharmacie
 from .serializers import LotProduitPharmacieSerializer
+
+from datetime import datetime
 
 class LotProduitPharmacieViewSet(viewsets.ModelViewSet):
     queryset = LotProduitPharmacie.objects.all()
@@ -1068,12 +1059,16 @@ class LotProduitPharmacieViewSet(viewsets.ModelViewSet):
         user = self.request.user
         queryset = LotProduitPharmacie.objects.all()
 
-        # ✅ Filtrer les lots selon la pharmacie de l'utilisateur connecté
-        if hasattr(user, 'pharmacie') and user.pharmacie:
-            queryset = queryset.filter(produit__pharmacie=user.pharmacie)
+        # ✅ Récupération de la pharmacie (priorité à user.pharmacie, sinon query param)
+        pharmacie = getattr(user, 'pharmacie', None)
+        if pharmacie is None:
+            pharmacie_id = self.request.query_params.get('pharmacie')
+            if pharmacie_id:
+                queryset = queryset.filter(produit__pharmacie_id=pharmacie_id)
+            else:
+                return LotProduitPharmacie.objects.none()
         else:
-            # Si pas de pharmacie liée, on retourne un queryset vide
-            return LotProduitPharmacie.objects.none()
+            queryset = queryset.filter(produit__pharmacie=pharmacie)
 
         # 🔍 Filtres supplémentaires
         produit_id = self.request.query_params.get('produit')
@@ -1107,47 +1102,75 @@ class LotProduitPharmacieViewSet(viewsets.ModelViewSet):
 
         return queryset
 
-   
-def get_queryset(self):
-    try:
-        pharmacie = self.request.user.pharmacie
-    except ObjectDoesNotExist:
-        return LotProduitPharmacie.objects.none()
 
-    queryset = LotProduitPharmacie.objects.filter(pharmacie=pharmacie)
+############"
+from rest_framework import viewsets
+from .models import LotProduitPharmacie
+from .serializers import LotProduitPharmacieSerializer
+from django.utils import timezone
+from datetime import timedelta
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
-    # reste inchangé
-    produit_id = self.request.query_params.get('produit')
-    date_debut = self.request.query_params.get('date_debut')
-    date_fin = self.request.query_params.get('date_fin')
-    date_max = self.request.query_params.get('date_max')
+# views.py
+from rest_framework import viewsets, permissions
+from .models import LotProduitPharmacie
+from .serializers import LotProduitPharmacieSerializer
+from django.utils import timezone
+from datetime import timedelta
+from rest_framework.decorators import action
+from rest_framework.response import Response
+import logging
 
-    if produit_id:
-        queryset = queryset.filter(produit_id=produit_id)
+logger = logging.getLogger(__name__)
 
-    if date_debut:
-        try:
-            date_debut_obj = datetime.strptime(date_debut, '%Y-%m-%d').date()
-            queryset = queryset.filter(date_entree__gte=date_debut_obj)
-        except ValueError:
-            pass
+class LotsProduitPharmacieViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = LotProduitPharmacie.objects.all()
+    serializer_class = LotProduitPharmacieSerializer
 
-    if date_fin:
-        try:
-            date_fin_obj = datetime.strptime(date_fin, '%Y-%m-%d').date()
-            queryset = queryset.filter(date_entree__lte=date_fin_obj)
-        except ValueError:
-            pass
+    def get_queryset(self):
+        user = self.request.user
+        pharmacie_id = self.request.query_params.get('pharmacie', None)
 
-    if date_max:
-        try:
-            date_max_obj = datetime.strptime(date_max, '%Y-%m-%d').date()
-            queryset = queryset.filter(date_peremption__lte=date_max_obj)
-        except ValueError:
-            pass
+        logger.info("User: %s", user)
+        logger.info("User has pharmacie? %s", hasattr(user, 'pharmacie'))
 
-    return queryset
+        if hasattr(user, 'pharmacie') and user.pharmacie:
+            pharmacie = user.pharmacie.id
+        elif pharmacie_id:
+            pharmacie = pharmacie_id
+        else:
+            logger.warning("Aucune pharmacie trouvée pour cet utilisateur")
+            return LotProduitPharmacie.objects.none()
 
+        logger.info("Filtrage pour pharmacie ID: %s", pharmacie)
+        queryset = LotProduitPharmacie.objects.filter(produit__pharmacie=pharmacie)
+
+        logger.info("Nombre de lots trouvés: %d", queryset.count())
+        return queryset
+
+    @action(detail=False, methods=['get'])
+    def expires(self, request):
+        today = timezone.now().date()
+        period = request.query_params.get('period', 'week')
+
+        if period == 'expired':
+            queryset = self.get_queryset().filter(date_peremption__lt=today)
+        elif period == 'week':
+            end_date = today + timedelta(days=7)
+            queryset = self.get_queryset().filter(date_peremption__range=[today, end_date])
+        elif period == 'month':
+            end_date = today + timedelta(days=30)
+            queryset = self.get_queryset().filter(date_peremption__range=[today, end_date])
+        elif period == 'two_months':
+            end_date = today + timedelta(days=60)
+            queryset = self.get_queryset().filter(date_peremption__range=[today, end_date])
+        else:
+            queryset = self.get_queryset()
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 ############# PUBLICITE MEDICAMENT #####################
 # views.py
 from datetime import date

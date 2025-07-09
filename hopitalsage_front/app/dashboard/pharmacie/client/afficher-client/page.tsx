@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import PharmacieLayout from '@/app/dashboard/directeur/layout';
-import { ChevronDown } from 'lucide-react';
+import DropdownMenu from '../DropdownMenu';
 
+// Types
 interface Client {
   id: number;
   nom_complet: string;
@@ -24,9 +25,22 @@ export default function ClientsPage() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const router = useRouter();
 
+  const API = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+  const handle401 = () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    alert('Votre session a expiré. Veuillez vous reconnecter.');
+    window.location.href = '/login';
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
-    setAccessToken(token);
+    if (!token) {
+      router.push('/login');
+    } else {
+      setAccessToken(token);
+    }
   }, []);
 
   useEffect(() => {
@@ -38,13 +52,16 @@ export default function ClientsPage() {
   const fetchClients = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/clients/`, {
+      const response = await axios.get(`${API}/api/clients/`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       setClients(response.data);
     } catch (err: any) {
-      console.error("Erreur lors de la récupération des clients :", err);
-      setError("Impossible de charger les clients.");
+      if (err.response?.status === 401) handle401();
+      else {
+        console.error("Erreur lors de la récupération des clients :", err);
+        setError("Impossible de charger les clients.");
+      }
     } finally {
       setLoading(false);
     }
@@ -57,9 +74,10 @@ export default function ClientsPage() {
 
   return (
     <PharmacieLayout>
-      <div className="w-full p-4">
-        <h1 className="text-2xl font-semibold text-gray-800 mb-4">📋 Liste des Clients</h1>
+      <div className="max-w-7xl mx-auto p-6">
+        <h1 className="text-2xl font-semibold text-gray-800 mb-6">📋 Liste des Clients</h1>
 
+        {/* Barre de recherche */}
         <div className="relative max-w-md mb-6">
           <input
             type="text"
@@ -78,6 +96,7 @@ export default function ClientsPage() {
           </svg>
         </div>
 
+        {/* Chargement */}
         {loading ? (
           <p className="text-center text-blue-500">Chargement des clients...</p>
         ) : error ? (
@@ -87,10 +106,10 @@ export default function ClientsPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-blue-50">
                 <tr>
-                  {['Nom', 'Téléphone', 'Score', 'Dernier achat', 'Dépense', ''].map((header, i) => (
+                  {['Nom', 'Téléphone', 'Score', 'Dernier Achat', 'Dépense Totale', 'Actions'].map((header, i) => (
                     <th
                       key={i}
-                      className="py-3 px-4 text-left text-sm font-semibold text-gray-600"
+                      className="py-3 px-4 text-left text-sm font-semibold text-gray-600 uppercase tracking-wide"
                     >
                       {header}
                     </th>
@@ -99,20 +118,32 @@ export default function ClientsPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredClients.map((client) => (
-                  <tr key={client.id} className="hover:bg-gray-50 transition duration-150">
-                    <td className="px-4 py-3">{client.nom_complet}</td>
-                    <td className="px-4 py-3">{client.telephone}</td>
-                    <td className="px-4 py-3">{client.score_fidelite}</td>
-                    <td className="px-4 py-3">{client.dernier_achat ? new Date(client.dernier_achat).toLocaleDateString() : 'Jamais'}</td>
-                    <td className="px-4 py-3">{client.total_depense} Fc</td>
+                  <tr
+                    key={client.id}
+                    className="hover:bg-gray-50 transition-colors duration-150"
+                  >
+                    <td className="px-4 py-3 font-medium text-gray-900">
+                      {client.nom_complet}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">{client.telephone}</td>
+                    <td className="px-4 py-3 text-gray-700">{client.score_fidelite}</td>
+                    <td className="px-4 py-3 text-gray-700">
+                      {client.dernier_achat
+                        ? new Date(client.dernier_achat).toLocaleDateString()
+                        : 'Jamais'}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">
+                      {new Intl.NumberFormat('fr-FR').format(client.total_depense)} FC
+                    </td>
                     <td className="px-4 py-3 text-right">
-                      <DropdownMenu clientId={client.id} router={router} />
+                      <DropdownMenu clientId={client.id} />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
 
+            {/* Aucun résultat trouvé */}
             {filteredClients.length === 0 && (
               <div className="p-4 text-center text-gray-500">Aucun client trouvé.</div>
             )}
@@ -120,62 +151,5 @@ export default function ClientsPage() {
         )}
       </div>
     </PharmacieLayout>
-  );
-}
-
-function DropdownMenu({ clientId, router }: { clientId: number; router: any }) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const handleNavigation = (path: string) => {
-    router.push(`/dashboard/pharmacie/client/${clientId}/${path}`);
-    setIsOpen(false);
-  };
-
-  return (
-    <div className="relative inline-block text-left">
-      <button
-        onClick={() => setIsOpen((prev) => !prev)}
-        className="p-2 hover:bg-gray-100 rounded-full transition"
-      >
-        <ChevronDown size={20} />
-      </button>
-
-      {isOpen && (
-        <>
-          <div
-            className="absolute right-0 z-50 mt-2 w-44 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none animate-fadeIn"
-          >
-            <div className="py-1 text-sm text-gray-700">
-              <button
-                onClick={() => handleNavigation('examen')}
-                className="w-full text-left px-4 py-2 hover:bg-blue-50"
-              >
-                🩺 Examen
-              </button>
-              <button
-                onClick={() => handleNavigation('ordonnance')}
-                className="w-full text-left px-4 py-2 hover:bg-blue-50"
-              >
-                💊 Ordonnance
-              </button>
-              <button
-                onClick={() => handleNavigation('rendez-vous')}
-                className="w-full text-left px-4 py-2 hover:bg-blue-50"
-              >
-                📅 Rendez-vous
-              </button>
-
-              <button
-                onClick={() => handleNavigation('dossier-medical')}
-                className="w-full text-left px-4 py-2 hover:bg-blue-50"
-              >
-                📁 Dossier
-              </button>
-            </div>
-          </div>
-          <div className="fixed inset-0 z-0" onClick={() => setIsOpen(false)}></div>
-        </>
-      )}
-    </div>
   );
 }

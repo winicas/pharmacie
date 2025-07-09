@@ -1,16 +1,31 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import axios from 'axios';
 import PharmacieLayout from '@/app/dashboard/directeur/layout';
 
-// ✅ Typage correct des params comme Promise
-type PageProps = {
-  params: Promise<{ id: string }>;
-};
+interface User {
+  id: number;
+  username: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  profile_picture: string | null;
+  role: string;
+  pharmacie: number;
+}
 
-export default async function ExamenPatientPage({ params }: PageProps) {
-  const { id } = await params; // ✅ Await sur params
+interface Pharmacie {
+  id: number;
+  nom_pharm: string;
+  adresse_pharm: string;
+  telephone: string | null;
+}
+
+export default function ExamenPatientPage() {
+  const params = useParams();
+  const id = params.id as string;
 
   const [formData, setFormData] = useState({
     tension_arterielle: '',
@@ -19,11 +34,13 @@ export default async function ExamenPatientPage({ params }: PageProps) {
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
+  const [user, setUser] = useState<User | null>(null);
+  const [pharmacie, setPharmacie] = useState<Pharmacie | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
-    setAccessToken(token);
+    if (token) setAccessToken(token);
   }, []);
 
   const handleChange = (
@@ -52,14 +69,14 @@ export default async function ExamenPatientPage({ params }: PageProps) {
         }
       );
 
-      setSuccess("Examen créé avec succès !");
+      setSuccess('Examen créé avec succès !');
       setFormData({
         tension_arterielle: '',
         examen_malaria: false,
         remarques: '',
       });
     } catch (err: any) {
-      console.error("Erreur lors de la soumission", err);
+      console.error('Erreur lors de la soumission', err);
       alert("Erreur lors de l'enregistrement");
     } finally {
       setLoading(false);
@@ -68,12 +85,14 @@ export default async function ExamenPatientPage({ params }: PageProps) {
 
   return (
     <PharmacieLayout>
-      <div className="p-6">
+      <div className="max-w-2xl mx-auto p-6">
         <h1 className="text-2xl font-bold mb-6">Ajouter un examen médical</h1>
 
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow space-y-4 max-w-2xl mx-auto">
+        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tension artérielle</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tension artérielle
+            </label>
             <input
               type="text"
               name="tension_arterielle"
@@ -102,7 +121,7 @@ export default async function ExamenPatientPage({ params }: PageProps) {
               value={formData.remarques}
               onChange={handleChange}
               rows={4}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-600"
               placeholder="Autres observations..."
             />
           </div>

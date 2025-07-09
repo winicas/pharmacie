@@ -10,7 +10,7 @@ interface Medicament {
   quantite: number;
   prix_achat: number;
   marge_beneficiaire: number;
-  date_peremption: string;
+  date_peremption: string; // Format ISO
 }
 
 const ListeMedicamentsPage = () => {
@@ -32,7 +32,10 @@ const ListeMedicamentsPage = () => {
 
   const startEditing = (med: Medicament) => {
     setEditingId(med.id);
-    setFormData({ marge_beneficiaire: med.marge_beneficiaire });
+    setFormData({
+      marge_beneficiaire: med.marge_beneficiaire,
+      date_peremption: med.date_peremption,
+    });
   };
 
   const cancelEditing = () => {
@@ -41,9 +44,10 @@ const ListeMedicamentsPage = () => {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      marge_beneficiaire: Number(e.target.value),
+      [name]: name === 'marge_beneficiaire' ? Number(value) : value,
     });
   };
 
@@ -97,7 +101,7 @@ const ListeMedicamentsPage = () => {
             {medicamentsFiltres.map((med) => {
               const isEditing = editingId === med.id;
               const prixVente = (
-                med.prix_achat * (1 + (isEditing ? (formData.marge_beneficiaire ?? med.marge_beneficiaire) : med.marge_beneficiaire) / 100)
+                med.prix_achat * (1 + ((isEditing ? formData.marge_beneficiaire : med.marge_beneficiaire) || 0) / 100)
               ).toFixed(2);
 
               return (
@@ -106,7 +110,19 @@ const ListeMedicamentsPage = () => {
                   <td className="p-3">{med.quantite}</td>
                   <td className="p-3">{med.prix_achat} Fc</td>
                   <td className="p-3">{prixVente} Fc</td>
-                  <td className="p-3">{new Date(med.date_peremption).toLocaleDateString()}</td>
+                  <td className="p-3">
+                    {isEditing ? (
+                      <input
+                        type="date"
+                        name="date_peremption"
+                        value={formData.date_peremption || ''}
+                        onChange={handleChange}
+                        className="border px-2 py-1 rounded"
+                      />
+                    ) : (
+                      new Date(med.date_peremption).toLocaleDateString()
+                    )}
+                  </td>
                   <td className="p-3 space-x-2">
                     {isEditing ? (
                       <>

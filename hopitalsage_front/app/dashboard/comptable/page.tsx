@@ -48,11 +48,11 @@ export default function RequisitionPage() {
   const [pharmacieId, setPharmacieId] = useState<number | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [pharmacie, setPharmacie] = useState<Pharmacie | null>(null);
+  const [isLoadingSearch, setIsLoadingSearch] = useState(false);
 
   const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
   const API = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-  // Redirection si token invalide
   const handle401 = () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
@@ -65,12 +65,12 @@ export default function RequisitionPage() {
       if (!accessToken) return handle401();
 
       try {
-        const userRes = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/me/`, {
+        const userRes = await axios.get(`${API}/api/user/me/`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
         setUser(userRes.data);
 
-        const pharmRes = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacie/`, {
+        const pharmRes = await axios.get(`${API}/api/pharmacie/`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
         if (pharmRes.data.length > 0) {
@@ -87,35 +87,36 @@ export default function RequisitionPage() {
   }, [accessToken]);
 
   useEffect(() => {
-  const fetchProduits = async () => {
-    if (!accessToken || searchTerm.trim().length < 2) {
+    if (!searchTerm.trim()) {
       setProduits([]);
       return;
     }
 
-    try {
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits-fabricants/?search=${searchTerm}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      setProduits(res.data);
-    } catch (error: any) {
-      if (error.response?.status === 401) handle401();
-      else console.error("Erreur recherche produits :", error);
+    if (searchTerm.trim().length < 2) {
+      setProduits([]);
+      return;
     }
-  };
 
-  const timer = setTimeout(() => {
-    fetchProduits();
-  }, 400); // délai de 400ms après arrêt de frappe
+    const delayDebounce = setTimeout(() => {
+      setIsLoadingSearch(true);
+      axios
+        .get(`${API}/api/produits-fabricants/?search=${searchTerm}&page_size=20`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        })
+        .then(res => setProduits(res.data.results || []))
+        .catch(err => {
+          if (err.response?.status === 401) handle401();
+          else console.error("Erreur de recherche :", err);
+        })
+        .finally(() => setIsLoadingSearch(false));
+    }, 400);
 
-  return () => clearTimeout(timer);
-}, [searchTerm]);
-
-
+    return () => clearTimeout(delayDebounce);
+  }, [searchTerm]);
 
   const chargerRequisitions = async () => {
     try {
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/requisitions/?pharmacie=${pharmacieId}`, {
+      const res = await axios.get(`${API}/api/requisitions/?pharmacie=${pharmacieId}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       setRequisitions(res.data);
@@ -124,6 +125,12 @@ export default function RequisitionPage() {
       else console.error('Erreur chargement des réquisitions :', error);
     }
   };
+
+  useEffect(() => {
+    if (accessToken && pharmacieId) {
+      chargerRequisitions();
+    }
+  }, [accessToken, pharmacieId]);
 
   const ajouterRequisition = async (produit: any) => {
     const nom = produit.nom;
@@ -139,7 +146,7 @@ export default function RequisitionPage() {
     };
 
     try {
-      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/requisitions/`, payload, {
+      await axios.post(`${API}/api/requisitions/`, payload, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       await chargerRequisitions();
@@ -156,7 +163,7 @@ export default function RequisitionPage() {
 
     if (confirm("Supprimer cette réquisition ?")) {
       try {
-        await axios.delete(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/requisitions/${id}/`, {
+        await axios.delete(`${API}/api/requisitions/${id}/`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
         setRequisitions(prev => prev.filter(r => r.id !== id));
@@ -172,7 +179,7 @@ export default function RequisitionPage() {
 
   const incrementerDemande = async (id: number) => {
     try {
-      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/requisitions/${id}/incrementer/`, null, {
+      await axios.post(`${API}/api/requisitions/${id}/incrementer/`, null, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       await chargerRequisitions();
@@ -187,12 +194,6 @@ export default function RequisitionPage() {
       setRequisitions([]);
     }
   };
-
-  const filteredProduits = searchTerm.trim()
-    ? produits.filter((p) =>
-        p.nom.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : [];
 
   return (
     <div className="flex min-h-screen">
@@ -229,20 +230,24 @@ export default function RequisitionPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
 
-             {filteredProduits.length > 0 && (
-  <div className="grid grid-cols-1 gap-4 mb-6">
-    {filteredProduits.slice(0, 10).map((p) => (
-      <div
-        key={p.id}
-        className="flex flex-col bg-blue-50 border border-blue-200 p-3 rounded hover:bg-blue-100 cursor-pointer"
-        onClick={() => ajouterRequisition(p)}
-      >
-        <span className="font-bold text-gray-800">{p.nom}</span>
-        <span className="text-sm text-gray-600">Fabricant : {p.fabricant_nom || "Non spécifié"}</span>
-      </div>
-    ))}
-  </div>
-)}
+              {isLoadingSearch && <p className="text-sm text-gray-500">Chargement...</p>}
+
+              {produits.length > 0 && (
+                <div className="grid grid-cols-1 gap-4 mb-6">
+                  {produits.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => ajouterRequisition(p)}
+                      className="p-3 bg-blue-100 hover:bg-blue-200 rounded text-left shadow"
+                    >
+                      <p className="font-semibold">{p.nom}</p>
+                      <p className="text-sm text-gray-600">
+                        Fabricant : {p.fabricant_nom || "Non spécifié"}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
 
               <input
                 className="w-full p-3 border rounded mb-2"

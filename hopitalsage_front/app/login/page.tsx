@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import Cookies from 'js-cookie';
@@ -17,6 +17,8 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
 
+    console.log('Tentative de connexion avec', username, password);
+
     try {
       const response = await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/login/`, {
         username,
@@ -25,30 +27,34 @@ export default function LoginPage() {
 
       const { token, refresh, user } = response.data;
 
-      // Stockage
+      console.log('Connexion réussie, réponse API :', response.data);
+
       localStorage.setItem('accessToken', token);
       localStorage.setItem('refresh', refresh);
       localStorage.setItem('user', JSON.stringify(user));
       Cookies.set('token', token);
 
-      // Redirection selon le rôle
+      console.log('User connecté :', user);
+
+      // ✅ Redirection dans startTransition
       switch (user.role) {
         case 'superuser':
-            router.push('/dashboard/superadmin');
-            break;
+          startTransition(() => router.push('/dashboard/superadmin'));
+          break;
         case 'directeur':
-            router.push('/dashboard/directeur');
-            break;
+          startTransition(() => router.push('/dashboard/directeur'));
+          break;
         case 'admin':
-            router.push('/dashboard/admin');
-            break;
+          startTransition(() => router.push('/dashboard/admin'));
+          break;
         case 'comptable':
-            router.push('/dashboard/comptable');
-            break;
+          startTransition(() => router.push('/dashboard/comptable'));
+          break;
         default:
-            router.push('/');
+          startTransition(() => router.push('/'));
       }
     } catch (err: any) {
+      console.error('Erreur lors de la connexion :', err.response?.data || err.message);
       setError('Identifiants invalides');
     } finally {
       setLoading(false);

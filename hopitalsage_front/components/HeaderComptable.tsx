@@ -220,7 +220,7 @@ const HeaderPharmacie = ({ pharmacie, user }: HeaderPharmacieProps) => {
       label: 'Clients',
       icon: '🧑‍🤝‍🧑',
       submenu: [
-        { href: '#', label: 'Liste des clients', icon: '📁' },
+        { href: '/dashboard/pharmacie/client/afficher-client', label: 'Liste des clients', icon: '📁' },
         { href: '/dashboard/pharmacie/client/ajouter-client', label: 'Ajouter un client', icon: '➕' },
       ],
       isTitle: true,

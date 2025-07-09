@@ -5,6 +5,7 @@ from comptes.models import Pharmacie, User
 class Fabricant(models.Model):
     nom = models.CharField(max_length=255, db_index=True)
     pays_origine = models.CharField(max_length=100, blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.nom
@@ -20,6 +21,7 @@ class DepotPharmaceutique(models.Model):
     latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
     telephone = models.CharField(max_length=20, blank=True, null=True)  # téléphone optionnel
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.nom_depot} - {self.fabricant.nom}"
@@ -30,6 +32,7 @@ from django.db import models
 class TauxChange(models.Model):
     taux = models.DecimalField(max_digits=10, decimal_places=2)
     date = models.DateField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Taux du {self.date} : {self.taux}"
@@ -44,6 +47,7 @@ class ProduitFabricant(models.Model):
     prix_achat = models.DecimalField(max_digits=10, decimal_places=5)
     devise = models.CharField(max_length=3, choices=DEVISES, default='CDF')
     nombre_plaquettes_par_boite = models.PositiveIntegerField(default=1)  # 👈 Ajout important
+    updated_at = models.DateTimeField(auto_now=True)
 
     def prix_achat_cdf(self):
         if self.devise == 'USD':
@@ -89,6 +93,7 @@ class ProduitPharmacie(models.Model):
     prix_achat = models.DecimalField(max_digits=10, decimal_places=2)  # 🟠 devient le prix par plaquette
     marge_beneficiaire = models.DecimalField(max_digits=5, decimal_places=2, help_text="En pourcentage")
     prix_vente = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
         try:
@@ -140,6 +145,7 @@ class LotProduitPharmacie(models.Model):
 
     prix_achat = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     prix_vente = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
         # ✅ Génère automatiquement un numéro de lot si vide
@@ -168,6 +174,7 @@ class CommandeProduit(models.Model):
     date_commande = models.DateTimeField(auto_now_add=True)
     etat = models.CharField(max_length=50, default="en_attente")
     fabricant = models.ForeignKey(Fabricant, on_delete=models.CASCADE)
+    updated_at = models.DateTimeField(auto_now=True)
 
 from decimal import Decimal, ROUND_HALF_UP
 from django.db import models
@@ -178,6 +185,7 @@ class CommandeProduitLigne(models.Model):
     produit_fabricant = models.ForeignKey('ProduitFabricant', on_delete=models.CASCADE)
     quantite_commandee = models.PositiveIntegerField()
     prix_achat = models.DecimalField(max_digits=10, decimal_places=2)  # sera en CDF
+    updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
         prix = self.produit_fabricant.prix_achat
@@ -198,6 +206,7 @@ class ReceptionProduit(models.Model):
     commande = models.ForeignKey(CommandeProduit, on_delete=models.CASCADE, related_name='receptions')
     date_reception = models.DateTimeField(auto_now_add=True)
     utilisateur = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Réception pour {self.commande.id} le {self.date_reception}"
@@ -205,6 +214,7 @@ class ReceptionLigne(models.Model):
     reception = models.ForeignKey(ReceptionProduit, on_delete=models.CASCADE, related_name='lignes')
     ligne_commande = models.ForeignKey(CommandeProduitLigne, on_delete=models.CASCADE)
     quantite_recue = models.PositiveIntegerField()
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.ligne_commande.produit_fabricant.nom} reçu : {self.quantite_recue}"
@@ -229,6 +239,7 @@ class Client(models.Model):
     score_fidelite = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     dernier_achat = models.DateTimeField(null=True, blank=True)  # Nouveau champ
+    updated_at = models.DateTimeField(auto_now=True)
     total_depense = models.DecimalField(  # Nouveau champ
         max_digits=10, 
         decimal_places=2, 
@@ -260,6 +271,7 @@ class VenteProduit(models.Model):
     pharmacie = models.ForeignKey(Pharmacie, on_delete=models.CASCADE, related_name='ventes')
     date_vente = models.DateTimeField(auto_now_add=True)
     utilisateur = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
     client = models.ForeignKey(  # Nouveau champ
         Client, 
         on_delete=models.SET_NULL, 
@@ -289,6 +301,7 @@ class VenteLigne(models.Model):
     quantite = models.PositiveIntegerField()
     prix_unitaire = models.DecimalField(max_digits=10, decimal_places=2)
     total = models.DecimalField(max_digits=12, decimal_places=2, editable=False)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
         self.total = self.quantite * self.prix_unitaire
@@ -307,6 +320,7 @@ class ClientPurchase(models.Model):
     quantite = models.PositiveIntegerField()
     date_achat = models.DateTimeField(auto_now_add=True)
     points_gagnes = models.PositiveIntegerField()
+    updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
         # Calcul automatique des points (exemple : 1 point par euro dépensé)
@@ -321,6 +335,7 @@ class MedicalExam(models.Model):
     examen_malaria = models.BooleanField(default=False)
     date_exam = models.DateTimeField(auto_now_add=True)
     remarques = models.TextField(blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 class Prescription(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
@@ -328,6 +343,7 @@ class Prescription(models.Model):
     dosage = models.CharField(max_length=50)
     date_prescription = models.DateTimeField(auto_now_add=True)
     duree_traitement = models.CharField(max_length=50)
+    updated_at = models.DateTimeField(auto_now=True)
 
 class Requisition(models.Model):
     produit_fabricant = models.ForeignKey(ProduitFabricant, on_delete=models.SET_NULL, null=True, blank=True)
@@ -335,6 +351,7 @@ class Requisition(models.Model):
     nombre_demandes = models.PositiveIntegerField(default=1)
     pharmacie = models.ForeignKey(Pharmacie, on_delete=models.CASCADE)
     date_ajout = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.nom_personnalise or str(self.produit_fabricant)
@@ -354,6 +371,7 @@ class RendezVous(models.Model):
     date = models.DateField(default=timezone.now)  # aujourd'hui par défaut
     heure = models.TimeField(default=time(9, 0))  # 09:00 par défaut
     statut = models.CharField(max_length=10, choices=STATUT_CHOICES, default='à venir')
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.client} - {self.date} à {self.heure} ({self.statut})"
@@ -365,6 +383,7 @@ class PublicitePharmacie(models.Model):
     description = models.TextField()
     date_debut = models.DateField()
     date_fin = models.DateField()
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Publicité ({self.date_debut} → {self.date_fin})"

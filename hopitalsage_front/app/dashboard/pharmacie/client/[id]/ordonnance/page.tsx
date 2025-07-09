@@ -2,13 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useParams } from 'next/navigation';
 import PharmacieLayout from '@/app/dashboard/directeur/layout';
-
-interface Client {
-  id: number;
-  nom_complet: string;
-  telephone: string;
-}
 
 interface ProduitPharmacie {
   id: number;
@@ -17,13 +12,8 @@ interface ProduitPharmacie {
   quantite: number;
 }
 
-// ✅ Typage correct des params comme Promise
-type PageProps = {
-  params: Promise<{ id: string }>;
-};
-
-export default async function OrdonnancePatientPage({ params }: PageProps) {
-  const { id } = await params; // ✅ Await sur params
+export default function OrdonnancePatientPage() {
+  const { id } = useParams(); // ✅ Récupère l'id via useParams()
 
   const [produits, setProduits] = useState<ProduitPharmacie[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,45 +27,47 @@ export default async function OrdonnancePatientPage({ params }: PageProps) {
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
-    setAccessToken(token);
+    if (token) setAccessToken(token);
   }, []);
 
   // Charger les données utilisateur et produits
   useEffect(() => {
     if (accessToken) {
       // Récupère la pharmacie de l'utilisateur
-      axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacie/`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      })
+      axios
+        .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacie/`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        })
         .then((res) => {
           const pharmaId = res.data[0]?.id;
           setPharmacieId(pharmaId);
           // Charge les produits de la pharmacie
           loadProduits(pharmaId);
         })
-        .catch(() => setError("Erreur lors du chargement de la pharmacie"));
+        .catch(() => setError("Erreur lors du chargement de la pharmacie"))
+        .finally(() => setLoading(false));
     }
   }, [accessToken]);
 
   const loadProduits = (pharmacieId: number) => {
-    axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits-pharmacie/?pharmacie=${pharmacieId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
-      .then(res => {
+    axios
+      .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits-pharmacie/?pharmacie=${pharmacieId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .then((res) => {
         setProduits(res.data);
-        setLoading(false);
       })
       .catch(() => {
         setError("Erreur lors du chargement des produits");
-        setLoading(false);
       });
   };
 
-  const filteredProduits = produits.filter(p =>
+  const filteredProduits = produits.filter((p) =>
     p.nom_medicament.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!accessToken || !selectedProduit || !dosage || !dureeTraitement) {
       alert("Tous les champs sont obligatoires");
       return;
@@ -88,11 +80,15 @@ export default async function OrdonnancePatientPage({ params }: PageProps) {
     };
 
     try {
-      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/clients/${id}/ordonnance/`, payload, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/clients/${id}/ordonnance/`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
 
       alert("Ordonnance enregistrée !");
       setSelectedProduit(null);
@@ -104,25 +100,9 @@ export default async function OrdonnancePatientPage({ params }: PageProps) {
     }
   };
 
-  if (loading) {
-    return (
-      <PharmacieLayout>
-        <div className="p-6">Chargement des produits...</div>
-      </PharmacieLayout>
-    );
-  }
-
-  if (error) {
-    return (
-      <PharmacieLayout>
-        <div className="p-6 text-red-500">{error}</div>
-      </PharmacieLayout>
-    );
-  }
-
   return (
     <PharmacieLayout>
-      <div className="p-6">
+      <div className="max-w-2xl mx-auto p-6">
         <h1 className="text-2xl font-bold mb-6">Créer une ordonnance</h1>
 
         {/* Barre de recherche de produit */}

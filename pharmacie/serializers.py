@@ -93,19 +93,21 @@ from .models import LotProduitPharmacie
 
 class LotProduitPharmacieSerializer(serializers.ModelSerializer):
     nom_medicament = serializers.CharField(source='produit.nom_medicament', read_only=True)
+    pharmacie_id = serializers.IntegerField(source='produit.pharmacie.id', read_only=True)
 
     class Meta:
         model = LotProduitPharmacie
         fields = [
             'id',
-            'produit',
+            'produit',  # 👈 Assurez-vous qu'il est présent
             'nom_medicament',
             'numero_lot',
             'date_peremption',
             'date_entree',
             'quantite',
             'prix_achat',
-            'prix_vente'
+            'prix_vente',
+            'pharmacie_id',  # 👈 Champ ajouté pour simplifier l'accès frontend
         ]
 
 from rest_framework import serializers
@@ -130,13 +132,11 @@ from rest_framework import serializers
 from .models import CommandeProduitLigne, ProduitFabricant
 import random
 import string
-
 from .models import TauxChange  # Assure-toi que c'est bien importé
 from .models import TauxChange  # Assure-toi que c'est bien importé
 from decimal import Decimal, ROUND_HALF_UP
 from rest_framework import serializers
 from pharmacie.models import TauxChange, CommandeProduit, CommandeProduitLigne
-
 from rest_framework import serializers
 from decimal import Decimal, ROUND_HALF_UP
 from datetime import date, timedelta
@@ -671,7 +671,6 @@ class StatistiquesDuJourSerializer(serializers.Serializer):
     benefice = serializers.DecimalField(max_digits=12, decimal_places=2)
     total_ventes = serializers.DecimalField(max_digits=12, decimal_places=2)
     produit_plus_vendu = serializers.CharField()
-
 
 class ProduitAlerteSerializer(serializers.ModelSerializer):
     niveau_alerte = serializers.SerializerMethodField()

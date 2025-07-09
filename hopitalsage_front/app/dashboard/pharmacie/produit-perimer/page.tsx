@@ -10,9 +10,7 @@ interface Lot {
   nom_medicament: string
   date_peremption: string
   quantite: number
-  produit: {
-    pharmacie: number
-  }
+  pharmacie_id: number
 }
 
 function addDays(days: number) {
@@ -23,54 +21,81 @@ function addDays(days: number) {
 
 export default function PageLotsExpire() {
   const [lots, setLots] = useState<Lot[]>([])
-  const [periode, setPeriode] = useState<number>(60)
+  const [periode, setPeriode] = useState<'expired' | 'week' | 'month' | 'two_months'>('week')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // 🔍 Debug Logs (tu peux les supprimer plus tard)
+  const [debugData, setDebugData] = useState<{
+    token?: string
+    pharmacieId?: number
+    rawData?: any
+    filteredData?: Lot[]
+  }>({})
+
   useEffect(() => {
-    const token = localStorage.getItem('accessToken')
-    const dateMax = addDays(periode)
-
-    if (!token) {
-      setError("Token non trouvé.")
-      return
-    }
-
-    const fetchData = async () => {
+    const fetchLots = async () => {
       try {
-        // Étape 1 : récupérer les infos utilisateur
+        // Étape 1 : Récupérer le token
+        const token = localStorage.getItem('accessToken')
+        if (!token) throw new Error("Token introuvable.")
+
+        // Sauvegarder dans debug
+        setDebugData(prev => ({ ...prev, token }))
+
+        // Étape 2 : Récupérer utilisateur
         const userRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/user/me/`, {
           headers: { Authorization: `Bearer ${token}` }
         })
 
-        if (!userRes.ok) throw new Error('Échec lors de la récupération des infos utilisateur')
+        if (!userRes.ok) throw new Error("Échec lors de la récupération de l'utilisateur.")
         const user = await userRes.json()
-        const pharmacieId = user.pharmacie
 
-        // Étape 2 : récupérer les lots
-        const lotRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/lots/?date_max=${dateMax}`, {
+        const pharmacieId = user.pharmacie
+        setDebugData(prev => ({ ...prev, pharmacieId }))
+        console.log('Pharmacie ID:', pharmacieId)
+
+        // Étape 3 : Récupérer les lots selon la période
+        const periodMap = {
+          expired: 'expired',
+          week: 'week',
+          month: 'month',
+          two_months: 'two_months'
+        }
+
+        const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/lotss/expires/?period=${periodMap[periode]}`
+        console.log('URL appelée:', url)
+
+        const res = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` }
         })
 
-        if (!lotRes.ok) throw new Error('Échec lors de la récupération des lots')
-        const allLots = await lotRes.json()
+        if (!res.ok) {
+          const errText = await res.text()
+          console.error('Erreur API:', errText)
+          throw new Error(`Échec lors de la récupération des lots. Code: ${res.status}`)
+        }
 
-        // Étape 3 : filtrer les lots selon la pharmacie
-        const filteredLots = allLots.filter(
-          (lot: Lot) => lot.produit?.pharmacie === pharmacieId
-        )
+        const data = await res.json()
+        setDebugData(prev => ({ ...prev, rawData: data }))
+        console.log('Données brutes reçues:', data)
 
-        setLots(filteredLots)
+        // Étape 4 : Filtrer par pharmacie
+        const filtered = data.filter((lot: Lot) => lot.pharmacie_id === pharmacieId)
+        setDebugData(prev => ({ ...prev, filteredData: filtered }))
+        console.log('Lots filtrés:', filtered)
+
+        setLots(filtered)
         setError(null)
       } catch (err: any) {
-        console.error('Erreur :', err)
-        setError(err.message || 'Erreur inconnue')
+        console.error('Erreur détaillée:', err)
+        setError(err.message || "Erreur inconnue")
       } finally {
         setLoading(false)
       }
     }
 
-    fetchData()
+    fetchLots()
   }, [periode])
 
   const getUrgencyColor = (dateStr: string) => {
@@ -78,10 +103,14 @@ export default function PageLotsExpire() {
     const now = new Date()
     const diff = Math.floor((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
 
+    if (diff < 0) return 'border-red-600 bg-red-50'
     if (diff <= 7) return 'border-red-500'
     if (diff <= 30) return 'border-orange-400'
     return 'border-yellow-300'
   }
+
+  const formatDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString('fr-FR')
 
   return (
     <PharmacieLayout>
@@ -100,27 +129,39 @@ export default function PageLotsExpire() {
           Produits proches de péremption
         </h1>
 
-        {/* Boutons de période */}
-        <div className="flex gap-4 mb-8">
+        {/* Boutons de filtrage */}
+        <div className="flex gap-4 mb-8 flex-wrap">
           <button
-            onClick={() => setPeriode(7)}
+            onClick={() => setPeriode('expired')}
+            className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded shadow"
+          >
+            Périmés
+          </button>
+          <button
+            onClick={() => setPeriode('week')}
             className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold px-4 py-2 rounded shadow"
           >
-            Dans une semaine
+            Dans 7 jours
           </button>
           <button
-            onClick={() => setPeriode(30)}
+            onClick={() => setPeriode('month')}
             className="bg-orange-400 hover:bg-orange-500 text-black font-semibold px-4 py-2 rounded shadow"
           >
-            Dans un mois
+            Dans 30 jours
           </button>
           <button
-            onClick={() => setPeriode(60)}
+            onClick={() => setPeriode('two_months')}
             className="bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded shadow"
           >
-            Dans deux mois
+            Dans 60 jours
           </button>
         </div>
+
+        {/* Debug info (optionnel) */}
+        <details className="mb-6 text-xs text-gray-500">
+          <summary>Voir les données de débogage</summary>
+          <pre>{JSON.stringify(debugData, null, 2)}</pre>
+        </details>
 
         {/* Erreur */}
         {error && (
@@ -136,12 +177,12 @@ export default function PageLotsExpire() {
           <div className="text-gray-600 text-center mt-16">
             <Image
               src="/warning.png"
-              alt="No products"
+              alt="Aucun produit"
               width={120}
               height={120}
               className="mx-auto mb-4 opacity-60"
             />
-            <p className="text-lg">Aucun médicament proche de péremption.</p>
+            <p className="text-lg">Aucun médicament trouvé.</p>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -159,7 +200,7 @@ export default function PageLotsExpire() {
                 </p>
                 <p className="text-sm font-semibold text-red-700">
                   <span className="mr-1">🕒 Péremption :</span>
-                  {new Date(lot.date_peremption).toLocaleDateString()}
+                  {formatDate(lot.date_peremption)}
                 </p>
               </div>
             ))}

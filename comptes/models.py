@@ -24,6 +24,7 @@ class Pharmacie(models.Model):
 
     is_active = models.BooleanField(default=True)
     date_expiration = models.DateField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def jours_restants(self):
         if self.date_expiration:
@@ -63,7 +64,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     pharmacie = models.ForeignKey(Pharmacie, on_delete=models.CASCADE, null=True, blank=True)
     role = models.CharField(max_length=50, choices=[('superuser', 'Superuser'),('admin', 'Admin'), ('directeur', 'Directeur'), ('comptable', 'Comptable')], default='comptable')
     profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
-
+    updated_at = models.DateTimeField(auto_now=True)
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'username'

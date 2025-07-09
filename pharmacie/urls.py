@@ -42,7 +42,8 @@ LotProduitPharmacieViewSet,
 PubliciteActuelleView,
 PubliciteUploadView,
 CreateDepotPharmaceutiqueView,
-LogoutAPIView
+LogoutAPIView,
+LotsProduitPharmacieViewSet
 
 
 
@@ -60,6 +61,7 @@ router.register(r'exams', MedicalExamViewSet)
 router.register(r'requisitions', RequisitionViewSet, basename='requisitions')
 router.register(r'rendezvous', RendezVousViewSet)
 router.register(r'lots', LotProduitPharmacieViewSet)
+router.register(r'lotss', LotsProduitPharmacieViewSet, basename='lot')
 
 
 urlpatterns = [
