@@ -25,12 +25,12 @@ REMOTE = connections['remote']
 
 # Liste des modèles à synchroniser dans l'ordre des dépendances
 MODELS = [
+    User,
+    Pharmacie,
     TauxChange,
     Fabricant,
     DepotPharmaceutique,
     ProduitFabricant,
-    Pharmacie,
-    User,
     ProduitPharmacie,
     LotProduitPharmacie,
     CommandeProduit,
