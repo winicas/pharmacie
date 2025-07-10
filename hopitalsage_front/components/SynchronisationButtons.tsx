@@ -1,14 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function SynchronisationButtons() {
-  const [loading, setLoading] = useState(false);
-  const [log, setLog] = useState<string | null>(null);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncLog, setSyncLog] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number>(0);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (syncLoading) {
+      setProgress(0);
+      interval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 90) return prev;
+          return prev + Math.floor(Math.random() * 5) + 2; // Avance entre 2 et 6%
+        });
+      }, 250);
+    }
+
+    return () => clearInterval(interval);
+  }, [syncLoading]);
 
   const sync = async (direction: 'remote_to_local' | 'local_to_remote') => {
-    setLoading(true);
-    setLog(null);
+    const confirmationMessage =
+      direction === 'remote_to_local'
+        ? 'Confirmez-vous la synchronisation de Render vers Local ?'
+        : 'Confirmez-vous la synchronisation de Local vers Render ?';
+
+    const confirmed = window.confirm(confirmationMessage);
+    if (!confirmed) return;
+
+    setSyncLoading(true);
+    setSyncLog(null);
+    setProgress(0);
 
     try {
       const res = await fetch('/api/sync', {
@@ -18,16 +44,18 @@ export default function SynchronisationButtons() {
       });
 
       const data = await res.json();
+      setProgress(100);
 
       if (data.success) {
-        setLog(data.message || '✅ Synchronisation terminée avec succès.');
+        setSyncLog(`✅ ${data.message || 'Synchronisation terminée avec succès.'}`);
       } else {
-        setLog(data.error || '❌ Échec de la synchronisation.');
+        setSyncLog(`❌ ${data.error || 'Erreur inconnue.'}`);
       }
     } catch (err) {
-      setLog('❌ Erreur inconnue.');
+      setProgress(100);
+      setSyncLog('❌ Erreur lors de la synchronisation.');
     } finally {
-      setLoading(false);
+      setSyncLoading(false);
     }
   };
 
@@ -39,7 +67,7 @@ export default function SynchronisationButtons() {
         <button
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
           onClick={() => sync('remote_to_local')}
-          disabled={loading}
+          disabled={syncLoading}
         >
           🔄 Render ➝ Local
         </button>
@@ -47,25 +75,52 @@ export default function SynchronisationButtons() {
         <button
           className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
           onClick={() => sync('local_to_remote')}
-          disabled={loading}
+          disabled={syncLoading}
         >
           🔼 Local ➝ Render
         </button>
       </div>
 
-      {loading && (
-        <div className="text-yellow-600 space-y-1">
-          <p>⏳ Synchronisation en cours...</p>
-          <p className="text-sm italic">
-            Cette opération peut prendre quelques minutes. Merci de patienter...
-          </p>
-        </div>
-      )}
+      {/* Barre de progression et messages */}
+      {(syncLoading || syncLog) && (
+        <div className="space-y-2 mt-2">
+          <div className="relative w-full h-6 rounded-full overflow-hidden bg-gray-200 shadow-inner">
+            <div
+              className="absolute left-0 top-0 h-full transition-all duration-300 ease-out"
+              style={{
+                width: `${progress}%`,
+                background: progress === 100 && syncLog?.startsWith('✅')
+                  ? 'linear-gradient(to right, #00c851, #007e33)'
+                  : progress === 100 && syncLog?.startsWith('❌')
+                  ? 'linear-gradient(to right, #ff4444, #cc0000)'
+                  : 'linear-gradient(to right, #00c6ff, #0072ff)',
+              }}
+            ></div>
+            <div className="absolute w-full h-full flex items-center justify-center font-medium text-gray-800">
+              {progress}%
+            </div>
+          </div>
 
-      {log && (
-        <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto max-h-64 text-gray-800">
-          {log}
-        </pre>
+          <div className="text-center text-sm text-gray-700 italic">
+            {syncLoading
+              ? 'Veuillez patienter pendant la synchronisation...'
+              : syncLog}
+          </div>
+
+          {progress === 100 && syncLog && (
+            <div className="flex justify-center">
+              <button
+                className="mt-2 px-4 py-1 text-sm bg-gray-300 rounded hover:bg-gray-400"
+                onClick={() => {
+                  setSyncLog(null);
+                  setProgress(0);
+                }}
+              >
+                Fermer
+              </button>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

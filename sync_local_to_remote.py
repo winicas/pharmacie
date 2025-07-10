@@ -29,11 +29,6 @@ MODELS = [
     User,                        # utilisé partout (vente, réception…)
     Pharmacie,                   # utilisé dans produits, clients, ventes…
     
-    # 2. Éléments indépendants
-    TauxChange,
-    Fabricant,
-    DepotPharmaceutique,
-    
     # 3. Produits
     ProduitFabricant,           # dépend de Fabricant
     ProduitPharmacie,           # dépend de ProduitFabricant et Pharmacie

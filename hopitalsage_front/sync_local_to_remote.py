@@ -27,7 +27,7 @@ from django.db.utils import IntegrityError
 
 REMOTE = connections['remote']
 
-# Liste ordonnée des modèles
+# Liste ordonnée des modèles à synchroniser
 MODELS = [
     User,
     Pharmacie,
@@ -52,31 +52,36 @@ MODELS = [
     PublicitePharmacie,
 ]
 
+
 def has_updated_at(obj):
     return hasattr(obj, 'updated_at') and obj.updated_at is not None
 
+
 def sync_model_to_remote(model):
     print(f"\n🔄 Synchronisation du modèle {model.__name__} depuis local vers Render...")
-    for local_obj in model.objects.using('default').all():
-        try:
-            remote_obj = model.objects.using('remote').get(pk=local_obj.pk)
-        except model.DoesNotExist:
-            remote_obj = None
 
-        if not remote_obj:
+    # Charger tous les IDs de Render une seule fois
+    remote_ids = set(model.objects.using('remote').values_list('pk', flat=True))
+
+    for local_obj in model.objects.using('default').iterator():  # Plus léger que .all()
+        if local_obj.pk not in remote_ids:
             print(f"➕ Ajout de {model.__name__} (id={local_obj.pk}) sur Render")
             try:
                 local_obj.save(using='remote')
             except IntegrityError as e:
                 print(f"⚠️ Erreur Integrity lors de l'ajout: {e}")
         else:
-            if has_updated_at(local_obj) and has_updated_at(remote_obj):
-                if local_obj.updated_at > remote_obj.updated_at:
-                    print(f"📝 Mise à jour de {model.__name__} (id={local_obj.pk}) sur Render")
-                    local_obj.save(using='remote')
+            if has_updated_at(local_obj):
+                try:
+                    remote_obj = model.objects.using('remote').get(pk=local_obj.pk)
+                    if has_updated_at(remote_obj) and local_obj.updated_at > remote_obj.updated_at:
+                        print(f"📝 Mise à jour de {model.__name__} (id={local_obj.pk}) sur Render")
+                        local_obj.save(using='remote')
+                except Exception as e:
+                    print(f"❌ Erreur lors de la comparaison ou de la mise à jour : {e}")
             else:
-                # Si pas de champ updated_at, on peut décider de forcer la mise à jour
-                pass  # ou: local_obj.save(using='remote')
+                pass  # Pas de champ updated_at, donc on ne met pas à jour
+
 
 def run():
     print("\n🚀 Lancement de la synchronisation locale vers Render...")
@@ -86,6 +91,7 @@ def run():
         except Exception as e:
             print(f"❌ Erreur pendant la synchronisation du modèle {model.__name__} : {e}")
     print("\n✅ Synchronisation locale vers Render terminée avec succès.")
+
 
 if __name__ == "__main__":
     run()

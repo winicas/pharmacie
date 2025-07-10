@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PharmacieLayout from '@/app/dashboard/directeur/layout';
-import axios from '@/utils/axiosInstance'; // ✅ axios avec refresh auto
 
 interface Pharmacie {
   id: number;
@@ -60,88 +59,100 @@ export default function CreerClient() {
 
     const normalizedPhone = clientData.telephone.replace(/\D/g, '');
     const dataToSend = {
-      ...clientData,
+      nom_complet: clientData.nom_complet,
       telephone: normalizedPhone,
     };
 
     try {
-      await axios.post('/api/clients/', dataToSend); // ✅ Pas besoin de headers ici
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/clients/`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+          body: JSON.stringify(dataToSend),
+        }
+      );
 
-      alert('Client créé avec succès !');
-      router.push('/dashboard/pharmacie/vente');
-    } catch (error: any) {
-      console.error('Erreur:', error.response?.data);
-
-      if (error.response?.status === 400) {
-        const backendErrors: Record<string, string[]> = error.response.data;
-
-        const formattedErrors: Record<string, string> = {};
-        Object.entries(backendErrors).forEach(([key, messages]) => {
-          formattedErrors[key] = messages.join(', ');
-        });
-
-        setErrors(formattedErrors);
+      if (response.ok) {
+        alert('Client créé avec succès !');
+        router.push('/dashboard/pharmacie/vente');
       } else {
-        alert(`Erreur: ${error.response?.data?.detail || 'Erreur inconnue'}`);
+        const errorData = await response.json();
+
+        if (response.status === 400) {
+          const formattedErrors: Record<string, string> = {};
+          Object.entries(errorData).forEach(([key, messages]: any) => {
+            formattedErrors[key] = messages.join(', ');
+          });
+          setErrors(formattedErrors);
+        } else {
+          alert(`Erreur: ${errorData.detail || 'Erreur inconnue'}`);
+        }
       }
+    } catch (error) {
+      console.error('Erreur lors de la requête :', error);
+      alert('Une erreur réseau est survenue');
     }
   };
 
   return (
-     <PharmacieLayout>
-    <div className="flex min-h-screen">
-      <div className="flex-1 flex flex-col">
-            <main className="min-h-screen bg-gray-100 p-8">
-          <h2 className="text-2xl font-bold mb-4">Créer un client</h2>
+    <PharmacieLayout>
+      <div className="flex min-h-screen">
+        <div className="flex-1 flex flex-col">
+          <main className="min-h-screen bg-gray-100 p-8">
+            <h2 className="text-2xl font-bold mb-4">Créer un client</h2>
 
-          <form onSubmit={handleSubmit}>
-            <div className="mb-4">
-              <label className="block mb-2">Nom complet</label>
-              <input
-                type="text"
-                value={clientData.nom_complet}
-                onChange={(e) =>
-                  setClientData({ ...clientData, nom_complet: e.target.value })
-                }
-                className={`w-full p-2 border rounded ${
-                  errors.nom_complet ? 'border-red-500' : ''
-                }`}
-                required
-              />
-              {errors.nom_complet && (
-                <p className="text-red-500 text-sm mt-1">{errors.nom_complet}</p>
-              )}
-            </div>
+            <form onSubmit={handleSubmit}>
+              <div className="mb-4">
+                <label className="block mb-2">Nom complet</label>
+                <input
+                  type="text"
+                  value={clientData.nom_complet}
+                  onChange={(e) =>
+                    setClientData({ ...clientData, nom_complet: e.target.value })
+                  }
+                  className={`w-full p-2 border rounded ${
+                    errors.nom_complet ? 'border-red-500' : ''
+                  }`}
+                  required
+                />
+                {errors.nom_complet && (
+                  <p className="text-red-500 text-sm mt-1">{errors.nom_complet}</p>
+                )}
+              </div>
 
-            <div className="mb-4">
-              <label className="block mb-2">Téléphone</label>
-              <input
-                type="tel"
-                value={clientData.telephone}
-                onChange={(e) =>
-                  setClientData({ ...clientData, telephone: e.target.value })
-                }
-                className={`w-full p-2 border rounded ${
-                  errors.telephone ? 'border-red-500' : ''
-                }`}
-                required
-                placeholder="Ex: 0612345678"
-              />
-              {errors.telephone && (
-                <p className="text-red-500 text-sm mt-1">{errors.telephone}</p>
-              )}
-            </div>
+              <div className="mb-4">
+                <label className="block mb-2">Téléphone</label>
+                <input
+                  type="tel"
+                  value={clientData.telephone}
+                  onChange={(e) =>
+                    setClientData({ ...clientData, telephone: e.target.value })
+                  }
+                  className={`w-full p-2 border rounded ${
+                    errors.telephone ? 'border-red-500' : ''
+                  }`}
+                  required
+                  placeholder="Ex: 0612345678"
+                />
+                {errors.telephone && (
+                  <p className="text-red-500 text-sm mt-1">{errors.telephone}</p>
+                )}
+              </div>
 
-            <button
-              type="submit"
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-            >
-              Créer le client
-            </button>
-          </form>
-        </main>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                Créer le client
+              </button>
+            </form>
+          </main>
+        </div>
       </div>
-    </div>
     </PharmacieLayout>
   );
 }

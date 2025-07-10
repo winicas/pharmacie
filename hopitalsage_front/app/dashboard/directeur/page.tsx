@@ -27,6 +27,7 @@ export default function DashboardPharmacie() {
 
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncLog, setSyncLog] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number>(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,7 +48,6 @@ export default function DashboardPharmacie() {
         const clientsRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/clients-avec-rendezvous/`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-
         if (!clientsRes.ok) throw new Error(`Erreur clients: ${clientsRes.status}`);
         const clientsData: Client[] = await clientsRes.json();
 
@@ -69,6 +69,22 @@ export default function DashboardPharmacie() {
     fetchData();
   }, [router]);
 
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (syncLoading) {
+      setProgress(0);
+      interval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 90) return prev;
+          return prev + Math.floor(Math.random() * 5) + 2;
+        });
+      }, 250);
+    }
+
+    return () => clearInterval(interval);
+  }, [syncLoading]);
+
   const sync = async (direction: 'remote_to_local' | 'local_to_remote') => {
     const confirmationMessage =
       direction === 'remote_to_local'
@@ -80,6 +96,8 @@ export default function DashboardPharmacie() {
 
     setSyncLoading(true);
     setSyncLog(null);
+    setProgress(0);
+
     try {
       const res = await fetch('/api/sync', {
         method: 'POST',
@@ -88,12 +106,15 @@ export default function DashboardPharmacie() {
       });
 
       const data = await res.json();
+      setProgress(100);
+
       if (data.success) {
-        setSyncLog(data.stdout || '✅ Synchronisation terminée avec succès.');
+        setSyncLog(`✅ ${data.message || 'Synchronisation terminée avec succès.'}`);
       } else {
-        setSyncLog(`❌ Échec : ${data.error}`);
+        setSyncLog(`❌ ${data.error || 'Erreur inconnue.'}`);
       }
     } catch (err) {
+      setProgress(100);
       setSyncLog('❌ Erreur lors de la synchronisation.');
     } finally {
       setSyncLoading(false);
@@ -103,77 +124,71 @@ export default function DashboardPharmacie() {
   if (loading) return <div>Chargement...</div>;
   if (error) return <div className="text-red-500">{error}</div>;
 
-  const getColor = (dateStr: string | null): string => {
-    if (!dateStr) return '';
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const rdvDate = new Date(dateStr);
-    rdvDate.setHours(0, 0, 0, 0);
-    const diffDays = Math.floor((rdvDate.getTime() - todayStart.getTime()) / (1000 * 60 * 60 * 24));
-    if (diffDays < 0) return 'bg-green-100';
-    if (diffDays === 0) return 'bg-red-300';
-    if (diffDays === 1) return 'bg-orange-300';
-    if (diffDays === 2) return 'bg-yellow-300';
-    return 'bg-green-50';
-  };
-
-  const getRdvMessage = (dateStr: string | null): string => {
-    if (!dateStr) return '';
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const rdvDate = new Date(dateStr);
-    rdvDate.setHours(0, 0, 0, 0);
-    const diffDays = Math.floor((rdvDate.getTime() - todayStart.getTime()) / (1000 * 60 * 60 * 24));
-    if (diffDays < 0) return 'RDV passé';
-    if (diffDays === 0) return "Aujourd'hui";
-    if (diffDays === 1) return "Demain";
-    if (diffDays === 2) return "Dans 2 jours";
-    return `Dans ${diffDays} jours`;
-  };
-
   return (
-    <div className="bg-white dark:bg-zinc-800 p-6 rounded shadow space-y-8">
-      <div>
-        <h2 className="text-2xl font-semibold text-emerald-600">
-          Bienvenue sur votre espace pharmacie
-        </h2>
-        <p className="text-gray-700 dark:text-gray-200">
-          Ici vous pouvez gérer vos produits, commandes, alertes, etc.
-        </p>
-      </div>
+    <div className="bg-white p-6 rounded shadow space-y-8">
+      <h2 className="text-2xl font-semibold text-emerald-600">
+        Bienvenue sur votre espace pharmacie
+      </h2>
 
-      {/* Boutons de synchronisation */}
       <div className="space-y-2">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-          Synchronisation des données
-        </h3>
+        <h3 className="text-lg font-semibold">Synchronisation des données</h3>
         <div className="flex gap-4">
           <button
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+            className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
             onClick={() => sync('remote_to_local')}
             disabled={syncLoading}
           >
-            🔄 Render ➝ Local
+            🔄 Enregistrer donnée Cloud vers ➝ Ton Ordinateur
           </button>
-
           <button
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
+            className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
             onClick={() => sync('local_to_remote')}
             disabled={syncLoading}
           >
-            🔼 Local ➝ Render
+            🔼 Enregistrer donnée Ordinateur vers ➝ Cloud
           </button>
         </div>
 
-        {syncLoading && <p className="text-yellow-500">⏳ Synchronisation en cours...</p>}
-        {syncLog && (
-          <pre className="bg-gray-100 text-sm p-3 rounded overflow-x-auto max-h-64 dark:bg-zinc-700 text-gray-800 dark:text-gray-100">
-            {syncLog}
-          </pre>
+        {(syncLoading || syncLog) && (
+          <div className="space-y-2 mt-2">
+            <div className="relative w-full h-6 rounded-full overflow-hidden bg-gray-200">
+              <div
+                className="absolute left-0 top-0 h-full transition-all duration-300 ease-out"
+                style={{
+                  width: `${progress}%`,
+                  background: progress === 100 && syncLog?.startsWith('✅')
+                    ? 'linear-gradient(to right, #00c851, #007e33)'
+                    : progress === 100 && syncLog?.startsWith('❌')
+                    ? 'linear-gradient(to right, #ff4444, #cc0000)'
+                    : 'linear-gradient(to right, #00c6ff, #0072ff)',
+                }}
+              ></div>
+              <div className="absolute w-full h-full flex items-center justify-center font-medium text-gray-800">
+                {progress}%
+              </div>
+            </div>
+
+            <div className="text-center text-sm text-gray-700 italic">
+              {syncLoading ? 'Veuillez patienter...' : syncLog}
+            </div>
+
+            {progress === 100 && syncLog && (
+              <div className="flex justify-center">
+                <button
+                  className="mt-2 px-4 py-1 text-sm bg-gray-300 rounded hover:bg-gray-400"
+                  onClick={() => {
+                    setSyncLog(null);
+                    setProgress(0);
+                  }}
+                >
+                  Fermer
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
-      {/* Statistiques */}
       {stats && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard label="Chiffre d'affaires" value={`${stats.chiffre_affaire} Fc`} />
@@ -182,55 +197,15 @@ export default function DashboardPharmacie() {
           <StatCard label="Produit le plus vendu" value={stats.produit_plus_vendu} />
         </div>
       )}
-
-      {/* Liste des clients avec RDV */}
-      <div>
-        <h3 className="text-xl font-semibold text-emerald-700 mb-4">Liste des clients avec rendez-vous</h3>
-        {clients.length === 0 ? (
-          <p className="text-gray-500">Aucun client enregistré.</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {clients.map(client => {
-              const colorClass = getColor(client.rendez_vous);
-              const message = getRdvMessage(client.rendez_vous);
-
-              return (
-                <div
-                  key={client.id}
-                  className={`p-4 border rounded shadow-sm bg-gray-50 dark:bg-gray-700 ${colorClass}`}
-                >
-                  <p className="font-semibold text-gray-800 dark:text-gray-100">
-                    {client.nom_complet}
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">📞 {client.telephone}</p>
-                  {client.rendez_vous ? (
-                    <>
-                      <p className="text-xs italic text-gray-700 dark:text-gray-400">
-                        Rendez-vous: {new Date(client.rendez_vous).toLocaleDateString()}
-                      </p>
-                      <span className="text-xs mt-1 inline-block px-2 py-1 rounded-full bg-opacity-70 bg-black text-white">
-                        {message}
-                      </span>
-                    </>
-                  ) : (
-                    <p className="text-xs text-gray-500">Pas de rendez-vous</p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
 
-// Composant pour afficher une carte de statistique
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-emerald-100 dark:bg-emerald-700 p-4 rounded-xl shadow-md">
-      <p className="text-sm text-emerald-800 dark:text-emerald-100 font-medium">{label}</p>
-      <p className="text-xl font-bold text-emerald-900 dark:text-white">{value}</p>
+    <div className="bg-emerald-100 p-4 rounded-xl shadow-md">
+      <p className="text-sm text-emerald-800 font-medium">{label}</p>
+      <p className="text-xl font-bold text-emerald-900">{value}</p>
     </div>
   );
 }
