@@ -69,7 +69,7 @@ export default function DossierMedicalPage({ params }: { params: Promise<{ id: s
   useEffect(() => {
     if (accessToken && id) {
       axios
-        .get(`https://pharmacie-hefk.onrender.com/api/clients/${id}/dossier-medical/`, {
+        .get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/clients/${id}/dossier-medical/`, {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
@@ -97,6 +97,7 @@ export default function DossierMedicalPage({ params }: { params: Promise<{ id: s
       <div className="flex-1 flex flex-col">
         {/* Header */}
         {user && pharmacie && <HeaderDirecteur user={user} pharmacie={pharmacie} />}
+        {/* Page Content */}
 
         {/* Page Content */}
         <main className="p-6">
@@ -183,7 +184,10 @@ export default function DossierMedicalPage({ params }: { params: Promise<{ id: s
             </>
           )}
         </main>
+        
       </div>
+      
     </div>
+   
   );
 }

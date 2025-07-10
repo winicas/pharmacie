@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import axios from 'axios';
 import HeaderDirecteur from '@/components/HeaderDirecteur';
 import SidebarDirecteur from '@/components/SidebarDirecteur';
@@ -23,13 +24,9 @@ interface Pharmacie {
   telephone: string | null;
 }
 
-// ✅ Typage correct : params est une Promise
-type PageProps = {
-  params: Promise<{ id: string }>;
-};
-
-export default async function ExamenPatientPage({ params }: PageProps) {
-  const { id } = await params; // ✅ Await sur params
+export default function ExamenPatientPage() {
+  const params = useParams();
+  const id = params.id as string;
 
   const [formData, setFormData] = useState({
     tension_arterielle: '',
@@ -44,7 +41,7 @@ export default async function ExamenPatientPage({ params }: PageProps) {
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
-    setAccessToken(token);
+    if (token) setAccessToken(token);
   }, []);
 
   const handleChange = (
@@ -65,9 +62,13 @@ export default async function ExamenPatientPage({ params }: PageProps) {
     setSuccess('');
 
     try {
-      await axios.post(`https://pharmacie-hefk.onrender.com/api/clients/${id}/examen/`, formData, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/clients/${id}/examen/`,
+        formData,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
 
       setSuccess('Examen créé avec succès !');
       setFormData({
@@ -84,70 +85,68 @@ export default async function ExamenPatientPage({ params }: PageProps) {
   };
 
   return (
-    <div className="flex h-screen">
+    <div className="flex min-h-screen bg-gray-100">
+      {/* Sidebar */}
       <SidebarDirecteur />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Contenu principal */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
         {user && pharmacie && <HeaderDirecteur user={user} pharmacie={pharmacie} />}
+        <h1 className="text-2xl font-bold mb-6">Ajouter un examen médical</h1>
 
-        <main className="p-6 overflow-y-auto">
-          <h1 className="text-2xl font-bold mb-6">Ajouter un examen médical</h1>
+        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tension artérielle
+            </label>
+            <input
+              type="text"
+              name="tension_arterielle"
+              value={formData.tension_arterielle}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              placeholder="ex: 12/8"
+            />
+          </div>
 
-          <form
-            onSubmit={handleSubmit}
-            className="bg-white p-6 rounded-lg shadow space-y-4 max-w-2xl mx-auto"
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              name="examen_malaria"
+              checked={formData.examen_malaria}
+              onChange={handleChange}
+              className="h-5 w-5 text-blue-600"
+            />
+            <label className="ml-2 text-gray-700">Test de paludisme positif</label>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Remarques</label>
+            <textarea
+              name="remarques"
+              value={formData.remarques}
+              onChange={handleChange}
+              rows={4}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-600"
+              placeholder="Autres observations..."
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className={`mt-4 w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition ${
+              loading ? 'opacity-70 cursor-not-allowed' : ''
+            }`}
           >
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tension artérielle
-              </label>
-              <input
-                type="text"
-                name="tension_arterielle"
-                value={formData.tension_arterielle}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="ex: 12/8"
-              />
-            </div>
+            {loading ? 'Enregistrement...' : 'Enregistrer l’examen'}
+          </button>
 
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                name="examen_malaria"
-                checked={formData.examen_malaria}
-                onChange={handleChange}
-                className="h-5 w-5 text-blue-600"
-              />
-              <label className="ml-2 text-gray-700">Test de paludisme positif</label>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Remarques</label>
-              <textarea
-                name="remarques"
-                value={formData.remarques}
-                onChange={handleChange}
-                rows={4}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-600"
-                placeholder="Autres observations..."
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className={`mt-4 w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition ${
-                loading ? 'opacity-70 cursor-not-allowed' : ''
-              }`}
-            >
-              {loading ? 'Enregistrement...' : 'Enregistrer l’examen'}
-            </button>
-
-            {success && <div className="text-green-500 mt-4 text-center">{success}</div>}
-          </form>
-        </main>
+          {success && <div className="text-green-500 mt-4 text-center">{success}</div>}
+        </form>
       </div>
-    </div>
+      </div>
+    
   );
 }

@@ -25,6 +25,9 @@ export default function DashboardPharmacie() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncLog, setSyncLog] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchData = async () => {
       const token = localStorage.getItem('accessToken');
@@ -34,7 +37,6 @@ export default function DashboardPharmacie() {
       }
 
       try {
-        // Récupération des statistiques
         const statsRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/statistiques-du-jour/`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -42,7 +44,6 @@ export default function DashboardPharmacie() {
         const statsData = await statsRes.json();
         setStats(statsData);
 
-        // Récupération des clients avec RDV
         const clientsRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/clients-avec-rendezvous/`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -50,7 +51,6 @@ export default function DashboardPharmacie() {
         if (!clientsRes.ok) throw new Error(`Erreur clients: ${clientsRes.status}`);
         const clientsData: Client[] = await clientsRes.json();
 
-        // Tri par date de rendez-vous croissante
         clientsData.sort((a, b) => {
           const dateA = a.rendez_vous ? new Date(a.rendez_vous).getTime() : Infinity;
           const dateB = b.rendez_vous ? new Date(b.rendez_vous).getTime() : Infinity;
@@ -69,50 +69,65 @@ export default function DashboardPharmacie() {
     fetchData();
   }, [router]);
 
+  const sync = async (direction: 'remote_to_local' | 'local_to_remote') => {
+    const confirmationMessage =
+      direction === 'remote_to_local'
+        ? 'Confirmez-vous la synchronisation de Render vers Local ?'
+        : 'Confirmez-vous la synchronisation de Local vers Render ?';
+
+    const confirmed = window.confirm(confirmationMessage);
+    if (!confirmed) return;
+
+    setSyncLoading(true);
+    setSyncLog(null);
+    try {
+      const res = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ direction }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setSyncLog(data.stdout || '✅ Synchronisation terminée avec succès.');
+      } else {
+        setSyncLog(`❌ Échec : ${data.error}`);
+      }
+    } catch (err) {
+      setSyncLog('❌ Erreur lors de la synchronisation.');
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
   if (loading) return <div>Chargement...</div>;
   if (error) return <div className="text-red-500">{error}</div>;
 
-  // Fonction pour obtenir la couleur en fonction de la date
   const getColor = (dateStr: string | null): string => {
-    if (!dateStr) return ''; // Pas de rendez-vous → pas de couleur
-
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0); // Aujourd'hui à minuit
-
-    const rdvDate = new Date(dateStr);
-    rdvDate.setHours(0, 0, 0, 0); // RDV à minuit aussi
-
-    const diffDays = Math.floor(
-      (rdvDate.getTime() - todayStart.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    if (diffDays < 0) return 'bg-green-100'; // RDV passé
-    if (diffDays === 0) return 'bg-red-300'; // Aujourd’hui
-    if (diffDays === 1) return 'bg-orange-300'; // Demain
-    if (diffDays === 2) return 'bg-yellow-300'; // Dans 2 jours
-
-    return 'bg-green-50'; // Pour tous les autres jours futurs
-  };
-
-  // Message dynamique pour le RDV
-  const getRdvMessage = (dateStr: string | null): string => {
     if (!dateStr) return '';
-
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
-
     const rdvDate = new Date(dateStr);
     rdvDate.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((rdvDate.getTime() - todayStart.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return 'bg-green-100';
+    if (diffDays === 0) return 'bg-red-300';
+    if (diffDays === 1) return 'bg-orange-300';
+    if (diffDays === 2) return 'bg-yellow-300';
+    return 'bg-green-50';
+  };
 
-    const diffDays = Math.floor(
-      (rdvDate.getTime() - todayStart.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
+  const getRdvMessage = (dateStr: string | null): string => {
+    if (!dateStr) return '';
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const rdvDate = new Date(dateStr);
+    rdvDate.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((rdvDate.getTime() - todayStart.getTime()) / (1000 * 60 * 60 * 24));
     if (diffDays < 0) return 'RDV passé';
     if (diffDays === 0) return "Aujourd'hui";
     if (diffDays === 1) return "Demain";
     if (diffDays === 2) return "Dans 2 jours";
-
     return `Dans ${diffDays} jours`;
   };
 
@@ -125,6 +140,37 @@ export default function DashboardPharmacie() {
         <p className="text-gray-700 dark:text-gray-200">
           Ici vous pouvez gérer vos produits, commandes, alertes, etc.
         </p>
+      </div>
+
+      {/* Boutons de synchronisation */}
+      <div className="space-y-2">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+          Synchronisation des données
+        </h3>
+        <div className="flex gap-4">
+          <button
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+            onClick={() => sync('remote_to_local')}
+            disabled={syncLoading}
+          >
+            🔄 Render ➝ Local
+          </button>
+
+          <button
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
+            onClick={() => sync('local_to_remote')}
+            disabled={syncLoading}
+          >
+            🔼 Local ➝ Render
+          </button>
+        </div>
+
+        {syncLoading && <p className="text-yellow-500">⏳ Synchronisation en cours...</p>}
+        {syncLog && (
+          <pre className="bg-gray-100 text-sm p-3 rounded overflow-x-auto max-h-64 dark:bg-zinc-700 text-gray-800 dark:text-gray-100">
+            {syncLog}
+          </pre>
+        )}
       </div>
 
       {/* Statistiques */}

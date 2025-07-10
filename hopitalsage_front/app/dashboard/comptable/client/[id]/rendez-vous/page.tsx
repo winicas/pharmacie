@@ -1,11 +1,30 @@
 'use client';
 
-import { use, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useParams } from 'next/navigation';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import HeaderDirecteur from '@/components/HeaderDirecteur';
+import SidebarDirecteur from '@/components/SidebarDirecteur';
+// Types
+interface User {
+  id: number;
+  username: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  profile_picture: string | null;
+  role: string;
+  pharmacie: number;
+}
 
-
+interface Pharmacie {
+  id: number;
+  nom_pharm: string;
+  adresse_pharm: string;
+  telephone: string | null;
+}
 interface RendezVous {
   id: number;
   client: number;
@@ -14,17 +33,20 @@ interface RendezVous {
   statut: 'à venir' | 'passé';
 }
 
-export default function RendezVousPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
-  const clientId = parseInt(id);
+export default function RendezVousPage() {
+  const { id } = useParams(); // ✅ Récupère le paramètre [id] via useParams()
+  const clientId = parseInt(id as string); // ✅ Cast vers string si nécessaire
+
   const [date, setDate] = useState<Date | null>(null);
   const [rendezVous, setRendezVous] = useState<RendezVous[]>([]);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [heure, setHeure] = useState<string>('');
+  const [user, setUser] = useState<User | null>(null);
+  const [pharmacie, setPharmacie] = useState<Pharmacie | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
-    setAccessToken(token);
+    if (token) setAccessToken(token);
   }, []);
 
   useEffect(() => {
@@ -33,9 +55,12 @@ export default function RendezVousPage({ params }: { params: Promise<{ id: strin
 
   const fetchRendezVous = async () => {
     try {
-      const res = await axios.get(`https://pharmacie-hefk.onrender.com/api/rendez-vous/client/${clientId}/`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/rendez-vous/client/${clientId}/`, // ✅ URL remplacée
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
       setRendezVous(res.data);
     } catch (error) {
       console.error('Erreur de chargement des rendez-vous', error);
@@ -43,10 +68,11 @@ export default function RendezVousPage({ params }: { params: Promise<{ id: strin
   };
 
   const enregistrerRendezVous = async () => {
-    if (!date) return;
+    if (!date || !heure) return;
+
     try {
       const res = await axios.post(
-        'https://pharmacie-hefk.onrender.com/api/rendez-vous/',
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/rendez-vous/`, // ✅ URL remplacée
         {
           client: clientId,
           date: date.toISOString().split('T')[0],
@@ -56,6 +82,7 @@ export default function RendezVousPage({ params }: { params: Promise<{ id: strin
           headers: { Authorization: `Bearer ${accessToken}` },
         }
       );
+
       setRendezVous((prev) => [...prev, res.data]);
       setDate(null);
       setHeure('');
@@ -65,7 +92,14 @@ export default function RendezVousPage({ params }: { params: Promise<{ id: strin
   };
 
   return (
-   
+     <div className="flex min-h-screen bg-gray-100">
+      {/* Sidebar */}
+      <SidebarDirecteur />
+
+      {/* Contenu principal */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        {user && pharmacie && <HeaderDirecteur user={user} pharmacie={pharmacie} />}
       <div className="p-6 max-w-2xl mx-auto bg-white rounded-xl shadow">
         <h1 className="text-xl font-semibold text-emerald-700 mb-4">
           Gérer les Rendez-vous du Client #{clientId}
@@ -75,24 +109,25 @@ export default function RendezVousPage({ params }: { params: Promise<{ id: strin
           <label className="block text-gray-600 font-medium mb-2">
             Choisir une date de rendez-vous :
           </label>
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-center flex-wrap">
             <DatePicker
               selected={date ?? null}
               onChange={(date: Date | null) => setDate(date)}
-              className="border rounded px-4 py-2"
+              className="border rounded px-4 py-2 w-full sm:w-auto"
               dateFormat="yyyy-MM-dd"
               minDate={new Date()}
+              placeholderText="Sélectionner une date"
             />
             <input
               type="time"
               value={heure}
               onChange={(e) => setHeure(e.target.value)}
-              className="border rounded px-4 py-2"
+              className="border rounded px-4 py-2 w-full sm:w-auto"
               required
             />
             <button
               onClick={enregistrerRendezVous}
-              className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700"
+              className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700 transition w-full sm:w-auto"
             >
               Enregistrer
             </button>
@@ -118,6 +153,7 @@ export default function RendezVousPage({ params }: { params: Promise<{ id: strin
           ))}
         </ul>
       </div>
-   
+      </div>
+</div>    
   );
 }

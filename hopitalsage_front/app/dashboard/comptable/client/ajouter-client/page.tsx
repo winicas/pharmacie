@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import HeaderDirecteur from '@/components/HeaderDirecteur';
 import SidebarDirecteur from '@/components/SidebarDirecteur';
-import axios from '@/utils/axiosInstance'; // ✅ axios avec refresh automatique
+import axios from '@/utils/axiosInstance'; // ✅ axios avec refresh auto
 
 interface Pharmacie {
   id: number;
@@ -66,7 +66,8 @@ export default function CreerClient() {
     };
 
     try {
-      await axios.post('/api/clients/', dataToSend); // ✅ token injecté automatiquement
+      await axios.post('/api/clients/', dataToSend); // ✅ Pas besoin de headers ici
+
       alert('Client créé avec succès !');
       router.push('/dashboard/pharmacie/vente');
     } catch (error: any) {
@@ -74,10 +75,12 @@ export default function CreerClient() {
 
       if (error.response?.status === 400) {
         const backendErrors: Record<string, string[]> = error.response.data;
+
         const formattedErrors: Record<string, string> = {};
         Object.entries(backendErrors).forEach(([key, messages]) => {
           formattedErrors[key] = messages.join(', ');
         });
+
         setErrors(formattedErrors);
       } else {
         alert(`Erreur: ${error.response?.data?.detail || 'Erreur inconnue'}`);
@@ -86,12 +89,17 @@ export default function CreerClient() {
   };
 
   return (
-    <div className="flex min-h-screen">
+      <div className="flex min-h-screen bg-gray-100">
+      {/* Sidebar */}
       <SidebarDirecteur />
-      <div className="flex-1 flex flex-col">
-        {user && pharmacie && <HeaderDirecteur user={user} pharmacie={pharmacie} />}
 
-        <main className="min-h-screen bg-gray-100 p-8">
+      {/* Contenu principal */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        {user && pharmacie && <HeaderDirecteur user={user} pharmacie={pharmacie} />}
+        {/* Page Content */}
+      <div className="flex-1 flex flex-col">
+            <main className="min-h-screen bg-gray-100 p-8">
           <h2 className="text-2xl font-bold mb-4">Créer un client</h2>
 
           <form onSubmit={handleSubmit}>
@@ -142,5 +150,7 @@ export default function CreerClient() {
         </main>
       </div>
     </div>
+    </div>
+    
   );
 }
