@@ -81,7 +81,7 @@ export default function PageLotsExpire() {
         console.log('Données brutes reçues:', data)
 
         // Étape 4 : Filtrer par pharmacie
-        const filtered = data.filter((lot: Lot) => lot.pharmacie_id === pharmacieId)
+        const filtered = data.filter((lot: Lot) => lot.pharmacie_id === pharmacieId.id)
         setDebugData(prev => ({ ...prev, filteredData: filtered }))
         console.log('Lots filtrés:', filtered)
 

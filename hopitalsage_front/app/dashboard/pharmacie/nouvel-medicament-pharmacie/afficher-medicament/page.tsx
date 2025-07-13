@@ -10,7 +10,8 @@ interface Medicament {
   quantite: number;
   prix_achat: number;
   marge_beneficiaire: number;
-  date_peremption: string; // Format ISO
+  date_peremption: string;
+  localisation: string;
 }
 
 const ListeMedicamentsPage = () => {
@@ -34,7 +35,8 @@ const ListeMedicamentsPage = () => {
     setEditingId(med.id);
     setFormData({
       marge_beneficiaire: med.marge_beneficiaire,
-      date_peremption: med.date_peremption,
+      quantite: med.quantite,
+      localisation: med.localisation,
     });
   };
 
@@ -43,11 +45,11 @@ const ListeMedicamentsPage = () => {
     setFormData({});
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: name === 'marge_beneficiaire' ? Number(value) : value,
+      [name]: name === 'marge_beneficiaire' || name === 'quantite' ? Number(value) : value,
     });
   };
 
@@ -77,7 +79,6 @@ const ListeMedicamentsPage = () => {
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-4">Liste des Médicaments</h1>
 
-        {/* 🔍 Barre de recherche */}
         <input
           type="text"
           placeholder="Rechercher un médicament..."
@@ -93,7 +94,8 @@ const ListeMedicamentsPage = () => {
               <th className="p-3 text-left">Quantité</th>
               <th className="p-3 text-left">Prix d'Achat</th>
               <th className="p-3 text-left">Prix de Vente</th>
-              <th className="p-3 text-left">Date de Péremption</th>
+              <th className="p-3 text-left">Localisation</th>
+              <th className="p-3 text-left">Péremption</th>
               <th className="p-3 text-left">Actions</th>
             </tr>
           </thead>
@@ -105,25 +107,45 @@ const ListeMedicamentsPage = () => {
               ).toFixed(2);
 
               return (
-                <tr key={med.id} className="border-b hover:bg-gray-50">
+                <tr key={med.id} className="border-b hover:bg-gray-50 align-top">
                   <td className="p-3">{med.nom_medicament}</td>
-                  <td className="p-3">{med.quantite}</td>
-                  <td className="p-3">{med.prix_achat} Fc</td>
-                  <td className="p-3">{prixVente} Fc</td>
+
                   <td className="p-3">
                     {isEditing ? (
                       <input
-                        type="date"
-                        name="date_peremption"
-                        value={formData.date_peremption || ''}
+                        type="number"
+                        name="quantite"
+                        value={formData.quantite ?? ''}
                         onChange={handleChange}
-                        className="border px-2 py-1 rounded"
+                        className="border px-2 py-1 rounded w-20"
                       />
                     ) : (
-                      new Date(med.date_peremption).toLocaleDateString()
+                      med.quantite
                     )}
                   </td>
-                  <td className="p-3 space-x-2">
+
+                  <td className="p-3">{med.prix_achat} Fc</td>
+                  <td className="p-3">{prixVente} Fc</td>
+
+                  <td className="p-3">
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        name="localisation"
+                        value={formData.localisation ?? ''}
+                        onChange={handleChange}
+                        className="border px-2 py-1 rounded w-full"
+                      />
+                    ) : (
+                      <span className="block max-w-xs text-sm text-gray-700">{med.localisation}</span>
+                    )}
+                  </td>
+
+                  <td className="p-3">
+                    {new Date(med.date_peremption).toLocaleDateString()}
+                  </td>
+
+                  <td className="p-3 space-y-1">
                     {isEditing ? (
                       <>
                         <input
@@ -131,21 +153,23 @@ const ListeMedicamentsPage = () => {
                           name="marge_beneficiaire"
                           value={formData.marge_beneficiaire ?? ''}
                           onChange={handleChange}
-                          className="border px-2 py-1 rounded w-24"
+                          className="border px-2 py-1 rounded w-20"
                           placeholder="%"
                         />
-                        <button
-                          onClick={() => handleSave(med.id)}
-                          className="bg-emerald-600 text-white px-2 py-1 rounded hover:bg-emerald-700 text-sm"
-                        >
-                          Enregistrer
-                        </button>
-                        <button
-                          onClick={cancelEditing}
-                          className="border px-2 py-1 rounded text-sm"
-                        >
-                          Annuler
-                        </button>
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => handleSave(med.id)}
+                            className="bg-emerald-600 text-white px-2 py-1 rounded hover:bg-emerald-700 text-sm"
+                          >
+                            Enregistrer
+                          </button>
+                          <button
+                            onClick={cancelEditing}
+                            className="border px-2 py-1 rounded text-sm"
+                          >
+                            Annuler
+                          </button>
+                        </div>
                       </>
                     ) : (
                       <button
@@ -162,7 +186,6 @@ const ListeMedicamentsPage = () => {
           </tbody>
         </table>
 
-        {/* Si aucun résultat */}
         {medicamentsFiltres.length === 0 && (
           <p className="text-gray-600 mt-4">Aucun médicament trouvé.</p>
         )}

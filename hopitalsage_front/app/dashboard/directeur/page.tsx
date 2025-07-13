@@ -28,6 +28,7 @@ export default function DashboardPharmacie() {
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncLog, setSyncLog] = useState<string | null>(null);
   const [progress, setProgress] = useState<number>(0);
+  const [afficherAlerte, setAfficherAlerte] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -68,7 +69,13 @@ export default function DashboardPharmacie() {
 
     fetchData();
   }, [router]);
+useEffect(() => {
+  const timer = setTimeout(() => {
+    setAfficherAlerte(true);
+  }, 300000); // 5 minutes
 
+  return () => clearTimeout(timer);
+}, []);
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
@@ -131,7 +138,11 @@ export default function DashboardPharmacie() {
       </h2>
 
       <div className="space-y-2">
-        <h3 className="text-lg font-semibold">Synchronisation des données</h3>
+        {afficherAlerte && (
+  <h2 className="text-sm text-gray-600 italic text-right mb-4">
+    🔔 Pensez à sauvegarder vos données chaque soir avant de fermer la pharmacie pour sécuriser vos ventes et recevoir les mises à jour. ⏳ Cette opération peut prendre entre 20 à 40 minutes, merci de patienter jusqu’à la fin.
+  </h2>
+)}
         <div className="flex gap-4">
           <button
             className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"

@@ -11,6 +11,7 @@ interface LotProduitPharmacie {
   prix_achat: string;
   prix_vente: string;
   nom_medicament: string;
+  produit: number; // requis pour mise à jour stock
 }
 
 export default function ListeLots({
@@ -73,6 +74,42 @@ export default function ListeLots({
     }
   }
 
+  async function handleDeleteLot(lotId: number, produitId: number, quantite: number) {
+    const confirmDelete = window.confirm("Confirmez-vous la suppression de ce lot ? Le stock sera réduit.");
+    if (!confirmDelete) return;
+
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
+
+    try {
+      // Étape 1 : Supprimer le lot
+      await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/lots/${lotId}/`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // Étape 2 : Réduire la quantité dans ProduitPharmacie
+      await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits-pharmacie/${produitId}/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          operation: 'retrait_lot',
+          quantite: quantite,
+        }),
+      });
+
+      // Étape 3 : Mettre à jour l’interface
+      setLots((prev) => prev.filter((lot) => lot.id !== lotId));
+      alert("✅ Lot supprimé et stock mis à jour !");
+    } catch (error) {
+      console.error('Erreur lors de la suppression :', error);
+      alert("❌ Une erreur est survenue.");
+    }
+  }
+
   if (!produitId) return null;
 
   const nomMedicament = lots.length > 0 ? lots[0].nom_medicament : null;
@@ -98,7 +135,7 @@ export default function ListeLots({
               <th className="p-2">Prix Achat</th>
               <th className="p-2">Prix Vente</th>
               <th className="p-2">Date d’entrée</th>
-              <th className="p-2">Action</th>
+              <th className="p-2">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -121,12 +158,12 @@ export default function ListeLots({
                 <td className="p-2">{lot.prix_achat}</td>
                 <td className="p-2">{lot.prix_vente}</td>
                 <td className="p-2">{new Date(lot.date_entree).toLocaleDateString()}</td>
-                <td className="p-2">
+                <td className="p-2 space-x-2">
                   {editingLotId === lot.id ? (
                     <>
                       <button
                         onClick={() => handleSaveDate(lot.id)}
-                        className="mr-2 bg-green-500 text-white px-2 py-1 rounded"
+                        className="bg-green-500 text-white px-2 py-1 rounded text-sm"
                       >
                         Sauvegarder
                       </button>
@@ -135,21 +172,29 @@ export default function ListeLots({
                           setEditingLotId(null);
                           setNewDatePeremption('');
                         }}
-                        className="bg-gray-500 text-white px-2 py-1 rounded"
+                        className="bg-gray-500 text-white px-2 py-1 rounded text-sm"
                       >
                         Annuler
                       </button>
                     </>
                   ) : (
-                    <button
-                      onClick={() => {
-                        setEditingLotId(lot.id);
-                        setNewDatePeremption(lot.date_peremption);
-                      }}
-                      className="bg-blue-500 text-white px-2 py-1 rounded"
-                    >
-                      Modifier
-                    </button>
+                    <>
+                      <button
+                        onClick={() => {
+                          setEditingLotId(lot.id);
+                          setNewDatePeremption(lot.date_peremption);
+                        }}
+                        className="bg-blue-500 text-white px-2 py-1 rounded text-sm"
+                      >
+                        Modifier
+                      </button>
+                      <button
+                        onClick={() => handleDeleteLot(lot.id, lot.produit, lot.quantite)}
+                        className="bg-red-600 text-white px-2 py-1 rounded text-sm"
+                      >
+                        Supprimer
+                      </button>
+                    </>
                   )}
                 </td>
               </tr>

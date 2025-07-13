@@ -1,5 +1,4 @@
 'use client';
-
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import HeaderDirecteur from '@/components/HeaderDirecteur';
@@ -49,6 +48,10 @@ export default function RequisitionPage() {
   const [user, setUser] = useState<User | null>(null);
   const [pharmacie, setPharmacie] = useState<Pharmacie | null>(null);
   const [isLoadingSearch, setIsLoadingSearch] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncLog, setSyncLog] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number>(0);
+  const [afficherAlerte, setAfficherAlerte] = useState(false);
 
   const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
   const API = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -63,7 +66,6 @@ export default function RequisitionPage() {
   useEffect(() => {
     const fetchUserAndPharmacie = async () => {
       if (!accessToken) return handle401();
-
       try {
         const userRes = await axios.get(`${API}/api/user/me/`, {
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -73,6 +75,7 @@ export default function RequisitionPage() {
         const pharmRes = await axios.get(`${API}/api/pharmacie/`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
+
         if (pharmRes.data.length > 0) {
           setPharmacie(pharmRes.data[0]);
           setPharmacieId(pharmRes.data[0].id);
@@ -82,7 +85,6 @@ export default function RequisitionPage() {
         else console.error('Erreur de chargement des données :', error);
       }
     };
-
     fetchUserAndPharmacie();
   }, [accessToken]);
 
@@ -91,7 +93,6 @@ export default function RequisitionPage() {
       setProduits([]);
       return;
     }
-
     if (searchTerm.trim().length < 2) {
       setProduits([]);
       return;
@@ -110,7 +111,6 @@ export default function RequisitionPage() {
         })
         .finally(() => setIsLoadingSearch(false));
     }, 400);
-
     return () => clearTimeout(delayDebounce);
   }, [searchTerm]);
 
@@ -125,6 +125,13 @@ export default function RequisitionPage() {
       else console.error('Erreur chargement des réquisitions :', error);
     }
   };
+useEffect(() => {
+  const timer = setTimeout(() => {
+    setAfficherAlerte(true);
+  }, 300000); // 5 minutes
+
+  return () => clearTimeout(timer);
+}, []);
 
   useEffect(() => {
     if (accessToken && pharmacieId) {
@@ -134,7 +141,6 @@ export default function RequisitionPage() {
 
   const ajouterRequisition = async (produit: any) => {
     const nom = produit.nom;
-
     if (!produit.id && !nom.trim()) {
       setMessageErreur("Veuillez entrer un nom ou choisir un produit.");
       return;
@@ -160,7 +166,6 @@ export default function RequisitionPage() {
 
   const supprimerRequisition = async (id: number) => {
     if (!accessToken) return handle401();
-
     if (confirm("Supprimer cette réquisition ?")) {
       try {
         await axios.delete(`${API}/api/requisitions/${id}/`, {
@@ -195,21 +200,124 @@ export default function RequisitionPage() {
     }
   };
 
+  // Fonction de synchronisation
+  const sync = async (direction: 'remote_to_local' | 'local_to_remote') => {
+    const confirmationMessage =
+      direction === 'remote_to_local'
+        ? 'Confirmez-vous la synchronisation de Render vers Local ?'
+        : 'Confirmez-vous la synchronisation de Local vers Render ?';
+
+    const confirmed = window.confirm(confirmationMessage);
+    if (!confirmed) return;
+
+    setSyncLoading(true);
+    setSyncLog(null);
+    setProgress(0);
+
+    try {
+      const res = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ direction }),
+      });
+
+      const data = await res.json();
+      setProgress(100);
+
+      if (data.success) {
+        setSyncLog(`✅ ${data.message || 'Synchronisation terminée avec succès.'}`);
+        if (direction === 'remote_to_local') await chargerRequisitions(); // Recharger les données si sync depuis serveur
+      } else {
+        setSyncLog(`❌ ${data.error || 'Erreur inconnue.'}`);
+      }
+    } catch (err) {
+      setProgress(100);
+      setSyncLog('❌ Erreur lors de la synchronisation.');
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen">
       <SidebarDirecteur />
       <div className="flex-1 flex flex-col">
         {user && pharmacie && <HeaderDirecteur user={user} pharmacie={pharmacie} />}
+        <main className="min-h-screen bg-gray-100 p-8 space-y-6">
+          <h1 className="text-3xl font-bold text-blue-700 mb-2">Réquisition de Médicaments</h1>
 
-        <main className="min-h-screen bg-gray-100 p-8">
-          <h1 className="text-3xl font-bold text-blue-700 mb-6">Réquisition de Médicaments</h1>
+          {/* Section de synchronisation */}
+          <div className="space-y-2">
+          {afficherAlerte && (
+  <h2 className="text-sm text-gray-600 italic text-right mb-4">
+    🔔 Pensez à sauvegarder vos données chaque soir avant de fermer la pharmacie pour sécuriser vos ventes et recevoir les mises à jour. ⏳ Cette opération peut prendre entre 20 à 40 minutes, merci de patienter jusqu’à la fin.
+  </h2>
+)}
 
+
+            <div className="flex gap-4">
+              <button
+                className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
+                onClick={() => sync('remote_to_local')}
+                disabled={syncLoading}
+              >
+                🔄 Enregistrer de Cloud vers Ordinateur Local
+              </button>
+              <button
+                className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
+                onClick={() => sync('local_to_remote')}
+                disabled={syncLoading}
+              >
+                🔼 Enregistrer de l'Ordinateur vers Cloud
+              </button>
+            </div>
+            {(syncLoading || syncLog) && (
+              <div className="space-y-2 mt-2">
+                <div className="relative w-full h-6 rounded-full overflow-hidden bg-gray-200">
+                  <div
+                    className="absolute left-0 top-0 h-full transition-all duration-300 ease-out"
+                    style={{
+                      width: `${progress}%`,
+                      background:
+                        progress === 100 && syncLog?.startsWith('✅')
+                          ? 'linear-gradient(to right, #00c851, #007e33)'
+                          : progress === 100 && syncLog?.startsWith('❌')
+                          ? 'linear-gradient(to right, #ff4444, #cc0000)'
+                          : 'linear-gradient(to right, #00c6ff, #0072ff)',
+                    }}
+                  ></div>
+                  <div className="absolute w-full h-full flex items-center justify-center font-medium text-gray-800">
+                    {progress}%
+                  </div>
+                </div>
+                <div className="text-center text-sm text-gray-700 italic">
+                  {syncLoading ? 'Veuillez patienter...' : syncLog}
+                </div>
+                {progress === 100 && syncLog && (
+                  <div className="flex justify-center">
+                    <button
+                      className="mt-2 px-4 py-1 text-sm bg-gray-300 rounded hover:bg-gray-400"
+                      onClick={() => {
+                        setSyncLog(null);
+                        setProgress(0);
+                      }}
+                    >
+                      Fermer
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Message d'erreur */}
           {messageErreur && (
             <div className="mb-4 text-red-600 bg-red-100 p-3 rounded">
               ⚠️ {messageErreur}
             </div>
           )}
 
+          {/* Bouton nettoyer */}
           <div className="mb-6">
             <button
               onClick={nettoyerRequisitions}
@@ -219,6 +327,7 @@ export default function RequisitionPage() {
             </button>
           </div>
 
+          {/* Formulaire et Liste */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Formulaire */}
             <div>
@@ -229,9 +338,7 @@ export default function RequisitionPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-
               {isLoadingSearch && <p className="text-sm text-gray-500">Chargement...</p>}
-
               {produits.length > 0 && (
                 <div className="grid grid-cols-1 gap-4 mb-6">
                   {produits.map((p) => (
@@ -248,7 +355,6 @@ export default function RequisitionPage() {
                   ))}
                 </div>
               )}
-
               <input
                 className="w-full p-3 border rounded mb-2"
                 type="text"
@@ -264,10 +370,9 @@ export default function RequisitionPage() {
               </button>
             </div>
 
-            {/* Liste */}
+            {/* Liste des réquisitions */}
             <div>
               <h2 className="text-xl font-semibold mb-4 text-gray-700">📋 Liste des réquisitions</h2>
-
               {requisitions.length === 0 ? (
                 <p className="text-gray-600">Aucune réquisition enregistrée.</p>
               ) : (

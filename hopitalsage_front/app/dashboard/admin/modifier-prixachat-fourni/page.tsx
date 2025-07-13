@@ -77,7 +77,6 @@ const Page = () => {
       .then(data => {
         setProduits(data.results || [])
         setCurrentPage(page)
-        setModifications({})
       })
   }
 
@@ -93,6 +92,17 @@ const Page = () => {
         [field]: value,
       },
     }))
+  }
+
+  const estModifie = (produit: Produit): boolean => {
+    const modif = modifications[produit.id]
+    if (!modif) return false
+    return (
+      (modif.nom !== undefined && modif.nom !== produit.nom) ||
+      (modif.prix_achat !== undefined && modif.prix_achat !== produit.prix_achat) ||
+      (modif.nombre_plaquettes_par_boite !== undefined &&
+        modif.nombre_plaquettes_par_boite !== produit.nombre_plaquettes_par_boite)
+    )
   }
 
   const sauvegarderPrix = () => {
@@ -133,6 +143,9 @@ const Page = () => {
           })
 
           setTimeout(() => setMessage(null), 6000)
+
+          // ❌ Ne pas recharger les produits ici
+          // ❌ Ne pas reset modifications
         })
         .catch(() => {
           setMessage({
@@ -142,10 +155,6 @@ const Page = () => {
           setTimeout(() => setMessage(null), 6000)
         })
     })
-
-    if (fabricantSelectionne) {
-      setTimeout(() => chargerProduits(fabricantSelectionne, currentPage), 1000)
-    }
   }
 
   const goToNextPage = () => {
@@ -198,47 +207,55 @@ const Page = () => {
           {produits.length === 0 ? (
             <p className="text-center text-gray-500 italic">Aucun produit à afficher</p>
           ) : (
-            produits.map((produit) => (
-              <div key={produit.id} className="bg-white p-5 rounded-xl shadow">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm text-gray-600">Nom du médicament</label>
-                    <input
-                      type="text"
-                      defaultValue={produit.nom}
-                      onChange={(e) =>
-                        handleInputChange(produit.id, 'nom', e.target.value)
-                      }
-                      className="w-full border border-gray-300 rounded-lg px-4 py-2 mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600">Prix d'achat ({produit.devise})</label>
-                    <input
-                      type="number"
-                      defaultValue={produit.prix_achat}
-                      step="0.01"
-                      onChange={(e) =>
-                        handleInputChange(produit.id, 'prix_achat', parseFloat(e.target.value))
-                      }
-                      className="w-full border border-gray-300 rounded-lg px-4 py-2 mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600">Plaquettes/boîte</label>
-                    <input
-                      type="number"
-                      min="1"
-                      defaultValue={produit.nombre_plaquettes_par_boite}
-                      onChange={(e) =>
-                        handleInputChange(produit.id, 'nombre_plaquettes_par_boite', parseInt(e.target.value))
-                      }
-                      className="w-full border border-gray-300 rounded-lg px-4 py-2 mt-1"
-                    />
+            produits.map((produit) => {
+              const isModifie = estModifie(produit)
+              return (
+                <div
+                  key={produit.id}
+                  className={`p-5 rounded-xl shadow transition duration-200 ${
+                    isModifie ? 'bg-green-100 border border-green-300' : 'bg-white'
+                  }`}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-gray-600">Nom du médicament</label>
+                      <input
+                        type="text"
+                        defaultValue={produit.nom}
+                        onChange={(e) =>
+                          handleInputChange(produit.id, 'nom', e.target.value)
+                        }
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 mt-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600">Prix d'achat ({produit.devise})</label>
+                      <input
+                        type="number"
+                        defaultValue={produit.prix_achat}
+                        step="0.01"
+                        onChange={(e) =>
+                          handleInputChange(produit.id, 'prix_achat', parseFloat(e.target.value))
+                        }
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 mt-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600">Plaquettes/boîte</label>
+                      <input
+                        type="number"
+                        min="1"
+                        defaultValue={produit.nombre_plaquettes_par_boite}
+                        onChange={(e) =>
+                          handleInputChange(produit.id, 'nombre_plaquettes_par_boite', parseInt(e.target.value))
+                        }
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 mt-1"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              )
+            })
           )}
         </div>
 

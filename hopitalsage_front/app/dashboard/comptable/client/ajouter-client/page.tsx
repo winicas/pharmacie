@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import HeaderDirecteur from '@/components/HeaderDirecteur';
 import SidebarDirecteur from '@/components/SidebarDirecteur';
-import axios from '@/utils/axiosInstance'; // ✅ axios avec refresh auto
+ // ✅ axios avec refresh auto
 
 interface Pharmacie {
   id: number;
@@ -54,37 +54,49 @@ export default function CreerClient() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validate()) return;
 
     const normalizedPhone = clientData.telephone.replace(/\D/g, '');
     const dataToSend = {
-      ...clientData,
+      nom_complet: clientData.nom_complet,
       telephone: normalizedPhone,
     };
 
     try {
-      await axios.post('/api/clients/', dataToSend); // ✅ Pas besoin de headers ici
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/clients/`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+          body: JSON.stringify(dataToSend),
+        }
+      );
 
-      alert('Client créé avec succès !');
-      router.push('/dashboard/pharmacie/vente');
-    } catch (error: any) {
-      console.error('Erreur:', error.response?.data);
-
-      if (error.response?.status === 400) {
-        const backendErrors: Record<string, string[]> = error.response.data;
-
-        const formattedErrors: Record<string, string> = {};
-        Object.entries(backendErrors).forEach(([key, messages]) => {
-          formattedErrors[key] = messages.join(', ');
-        });
-
-        setErrors(formattedErrors);
+      if (response.ok) {
+        alert('Client créé avec succès !');
+        router.push('/dashboard/comptable/ventes');
       } else {
-        alert(`Erreur: ${error.response?.data?.detail || 'Erreur inconnue'}`);
+        const errorData = await response.json();
+
+        if (response.status === 400) {
+          const formattedErrors: Record<string, string> = {};
+          Object.entries(errorData).forEach(([key, messages]: any) => {
+            formattedErrors[key] = messages.join(', ');
+          });
+          setErrors(formattedErrors);
+        } else {
+          alert(`Erreur: ${errorData.detail || 'Erreur inconnue'}`);
+        }
       }
+    } catch (error) {
+      console.error('Erreur lors de la requête :', error);
+      alert('Une erreur réseau est survenue');
     }
   };
 

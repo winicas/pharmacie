@@ -1149,6 +1149,29 @@ class LotsProduitPharmacieViewSet(viewsets.ModelViewSet):
 
         logger.info("Nombre de lots trouvés: %d", queryset.count())
         return queryset
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        operation = request.data.get('operation')
+
+        if operation == 'retrait_lot':
+            quantite_a_retirer = int(request.data.get('quantite', 0))
+
+            # 🔸 Mise à jour du lot
+            instance.quantite = max(0, instance.quantite - quantite_a_retirer)
+            instance.save()
+
+            # 🔸 Mise à jour du stock global ProduitPharmacie
+            produit = instance.produit  # FK vers ProduitPharmacie
+            produit.quantite = max(0, produit.quantite - quantite_a_retirer)
+            produit.save()
+
+            return Response(
+                {'message': 'Quantité mise à jour pour le lot et le stock général'},
+                status=200
+            )
+
+        return super().partial_update(request, *args, **kwargs)
+
 
     @action(detail=False, methods=['get'])
     def expires(self, request):
