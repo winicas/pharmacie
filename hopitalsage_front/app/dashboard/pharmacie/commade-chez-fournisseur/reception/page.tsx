@@ -126,10 +126,11 @@ const handleQuantiteChange = (ligneId: number, value: string) => {
         }),
       })
 
-      if (response.ok) {
-        console.log(`Réception confirmée pour la commande ${commandeId}.`)
-        setCommandes(prevCommandes => prevCommandes.filter(c => c.id !== commandeId))
-        alert('Réception confirmée avec succès.')
+     if (response.ok) {
+  alert(`Réception confirmée ✅ (Commande n°${commandeId})`)
+  // Retirer la commande de l'interface sans relancer tout le fetch
+  setCommandes(prev => prev.filter(c => c.id !== commandeId))
+
       } else {
         const errorData = await response.json()
         console.error(`Erreur lors de la confirmation :`, errorData)

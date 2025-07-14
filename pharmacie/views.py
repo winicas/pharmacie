@@ -117,12 +117,19 @@ class ProduitsDuFabricantView(APIView):
         serializer = ProduitsFabricantSerializer(produits, many=True)
         return Response(serializer.data)
 
-###################"Recption de Medicament du commande"####################""
+###################"Recption de Medicamennt du commande"####################""
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from .serializers import ReceptionProduitSerializer, CommandeProduitDetailSerializer
 from .models import CommandeProduit
+
+# views.py
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from .serializers import ReceptionProduitSerializer
 
 class ConfirmerReceptionView(APIView):
     permission_classes = [IsAuthenticated]
@@ -132,12 +139,13 @@ class ConfirmerReceptionView(APIView):
         serializer = ReceptionProduitSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             commande = serializer.validated_data['commande']
-            commande.etat = 'confirmee'  # Marquez la commande comme confirmée
+            commande.etat = 'confirmee'
             commande.save()
 
             serializer.save(utilisateur=request.user)
             return Response({"message": "Réception confirmée avec succès."}, status=201)
         return Response(serializer.errors, status=400)
+
 
 from rest_framework.generics import RetrieveAPIView
 from .models import CommandeProduit
@@ -1104,73 +1112,65 @@ class LotProduitPharmacieViewSet(viewsets.ModelViewSet):
 
 
 ############"
-from rest_framework import viewsets
-from .models import LotProduitPharmacie
-from .serializers import LotProduitPharmacieSerializer
-from django.utils import timezone
-from datetime import timedelta
-from rest_framework.decorators import action
-from rest_framework.response import Response
 
-# views.py
 from rest_framework import viewsets, permissions
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.utils import timezone
+from datetime import timedelta
+from .models import LotProduitPharmacie, ProduitPharmacie  # ✅ ajoute ceci
+from .serializers import LotsProduitPharmacieSerializer
+import logging
+
+logger = logging.getLogger(__name__)
+
+from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status
+from rest_framework.response import Response
 from .models import LotProduitPharmacie
 from .serializers import LotProduitPharmacieSerializer
 from django.utils import timezone
 from datetime import timedelta
-from rest_framework.decorators import action
-from rest_framework.response import Response
 import logging
 
 logger = logging.getLogger(__name__)
 
 class LotsProduitPharmacieViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = LotsProduitPharmacieSerializer
     queryset = LotProduitPharmacie.objects.all()
-    serializer_class = LotProduitPharmacieSerializer
 
     def get_queryset(self):
         user = self.request.user
-        pharmacie_id = self.request.query_params.get('pharmacie', None)
-
-        logger.info("User: %s", user)
-        logger.info("User has pharmacie? %s", hasattr(user, 'pharmacie'))
+        pharmacie_id = self.request.query_params.get('pharmacie')
 
         if hasattr(user, 'pharmacie') and user.pharmacie:
             pharmacie = user.pharmacie.id
         elif pharmacie_id:
             pharmacie = pharmacie_id
         else:
-            logger.warning("Aucune pharmacie trouvée pour cet utilisateur")
             return LotProduitPharmacie.objects.none()
 
-        logger.info("Filtrage pour pharmacie ID: %s", pharmacie)
-        queryset = LotProduitPharmacie.objects.filter(produit__pharmacie=pharmacie)
+        return LotProduitPharmacie.objects.filter(produit__pharmacie=pharmacie)
 
-        logger.info("Nombre de lots trouvés: %d", queryset.count())
-        return queryset
-    def partial_update(self, request, *args, **kwargs):
+    def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        operation = request.data.get('operation')
 
-        if operation == 'retrait_lot':
-            quantite_a_retirer = int(request.data.get('quantite', 0))
+        # ✅ Produit lié au lot
+        produit_instance = ProduitPharmacie.objects.filter(id=instance.produit.id).first()
 
-            # 🔸 Mise à jour du lot
-            instance.quantite = max(0, instance.quantite - quantite_a_retirer)
-            instance.save()
+        if produit_instance:
+            # 🟢 Réduire le stock du produit global
+            produit_instance.quantite = max(0, produit_instance.quantite - instance.quantite)
+            produit_instance.save()
 
-            # 🔸 Mise à jour du stock global ProduitPharmacie
-            produit = instance.produit  # FK vers ProduitPharmacie
-            produit.quantite = max(0, produit.quantite - quantite_a_retirer)
-            produit.save()
+        # 🔴 Supprimer le lot
+        instance.delete()
 
-            return Response(
-                {'message': 'Quantité mise à jour pour le lot et le stock général'},
-                status=200
-            )
-
-        return super().partial_update(request, *args, **kwargs)
+        return Response(
+            {"message": "Lot supprimé et stock du produit mis à jour"},
+            status=status.HTTP_204_NO_CONTENT
+        )
 
 
     @action(detail=False, methods=['get'])
@@ -1194,6 +1194,7 @@ class LotsProduitPharmacieViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
 ############# PUBLICITE MEDICAMENT #####################
 # views.py
 from datetime import date

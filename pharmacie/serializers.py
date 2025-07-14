@@ -109,6 +109,32 @@ class LotProduitPharmacieSerializer(serializers.ModelSerializer):
             'prix_vente',
             'pharmacie_id',  # 👈 Champ ajouté pour simplifier l'accès frontend
         ]
+from rest_framework import serializers
+from .models import LotProduitPharmacie
+from .models import ProduitPharmacie
+
+class LotsProduitPharmacieSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LotProduitPharmacie
+        fields = '__all__'
+
+    def update(self, instance, validated_data):
+        operation = self.context['request'].data.get('operation', None)
+
+        if operation == 'retrait_lot':
+            quantite_a_retirer = int(self.context['request'].data.get('quantite', 0))
+
+            # 🟢 Mise à jour du lot
+            instance.quantite = max(0, instance.quantite - quantite_a_retirer)
+            instance.save()
+
+            # ✅ Mise à jour du stock global (ProduitPharmacie)
+            produit = instance.produit
+            produit.quantite = max(0, produit.quantite - quantite_a_retirer)
+            produit.save()
+
+        return super().update(instance, validated_data)
+
 
 from rest_framework import serializers
 from .models import ProduitFabricant
@@ -296,60 +322,59 @@ class ReceptionProduitSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         lignes_data = validated_data.pop('lignes')
-        reception = ReceptionProduit.objects.create(**validated_data)
-        commande = reception.commande
-        pharmacie = commande.pharmacie
 
-        for ligne_data in lignes_data:
-            # Création de la ligne de réception
-            reception_ligne = ReceptionLigne.objects.create(reception=reception, **ligne_data)
+        with transaction.atomic():
+            reception = ReceptionProduit.objects.create(**validated_data)
+            commande = reception.commande
+            pharmacie = commande.pharmacie
 
-            commande_ligne = ligne_data['ligne_commande']
-            produit_fabricant = commande_ligne.produit_fabricant
-            quantite_recue = ligne_data['quantite_recue']  # en boîtes
+            for ligne_data in lignes_data:
+                reception_ligne = ReceptionLigne.objects.create(reception=reception, **ligne_data)
 
-            if not produit_fabricant:
-                raise serializers.ValidationError("Produit fabricant introuvable pour la ligne.")
+                commande_ligne = ligne_data['ligne_commande']
+                produit_fabricant = commande_ligne.produit_fabricant
+                quantite_recue = ligne_data['quantite_recue']
 
-            nb_plaquettes = quantite_recue * produit_fabricant.nombre_plaquettes_par_boite
+                if not produit_fabricant:
+                    raise serializers.ValidationError("Produit fabricant introuvable pour la ligne.")
 
-            produit_pharmacie, created = ProduitPharmacie.objects.get_or_create(
-                pharmacie=pharmacie,
-                produit_fabricant=produit_fabricant,
-                defaults={
-                    'quantite': 0,
-                    'code_barre': generer_code_barre_aleatoire(),
-                    'nom_medicament': produit_fabricant.nom,
-                    'indication': True,
-                    'localisation': 'A0',
-                    'conditionnement': 'boîte',
-                    'date_peremption': date.today() + timedelta(days=545),
-                    'categorie': 'True',
-                    'alerte_quantite': 8,
-                    'prix_achat': commande_ligne.prix_achat,
-                    'marge_beneficiaire': Decimal('35.00'),
-                }
-            )
+                nb_plaquettes = quantite_recue * produit_fabricant.nombre_plaquettes_par_boite
 
-            produit_pharmacie.quantite += nb_plaquettes
+                produit_pharmacie, created = ProduitPharmacie.objects.get_or_create(
+                    pharmacie=pharmacie,
+                    produit_fabricant=produit_fabricant,
+                    defaults={
+                        'quantite': 0,
+                        'code_barre': generer_code_barre_aleatoire(),
+                        'nom_medicament': produit_fabricant.nom,
+                        'indication': True,
+                        'localisation': 'A0',
+                        'conditionnement': 'boîte',
+                        'date_peremption': date.today() + timedelta(days=545),
+                        'categorie': 'True',
+                        'alerte_quantite': 8,
+                        'prix_achat': commande_ligne.prix_achat,
+                        'marge_beneficiaire': Decimal('35.00'),
+                    }
+                )
 
-            if created:
-                produit_pharmacie.prix_vente = (
-                    produit_pharmacie.prix_achat + (
-                        produit_pharmacie.prix_achat * produit_pharmacie.marge_beneficiaire / 100
-                    )
-                ).quantize(Decimal('0.01'))
+                produit_pharmacie.quantite += nb_plaquettes
 
-            produit_pharmacie.save()
+                if created:
+                    produit_pharmacie.prix_vente = (
+                        produit_pharmacie.prix_achat +
+                        (produit_pharmacie.prix_achat * produit_pharmacie.marge_beneficiaire / 100)
+                    ).quantize(Decimal('0.01'))
 
-            # Création du lot
-            LotProduitPharmacie.objects.create(
-                produit=produit_pharmacie,
-                quantite=nb_plaquettes,
-                date_peremption=date.today() + timedelta(days=365)
-            )
+                produit_pharmacie.save()
 
-        return reception
+                LotProduitPharmacie.objects.create(
+                    produit=produit_pharmacie,
+                    quantite=nb_plaquettes,
+                    date_peremption=date.today() + timedelta(days=365)
+                )
+
+            return reception
 
 
 

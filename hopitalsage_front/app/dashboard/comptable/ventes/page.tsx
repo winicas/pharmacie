@@ -17,6 +17,7 @@ interface ProduitPharmacie {
   prix_vente: number;
   quantite: number;
   code_barre: string;
+  localisation: string;
 }
 
 interface LigneVente {
@@ -314,6 +315,7 @@ export default function VentePage() {
                     <div className="font-semibold">{produit.nom_medicament}</div>
                     <div className="text-sm text-gray-600">Stock : {produit.quantite}</div>
                     <div className="text-sm text-green-600 font-bold">{produit.prix_vente} Fc</div>
+                    <div className="text-sm text-gray-500 italic">Etagère N° : {produit.localisation}</div>
                   </div>
                 ))}
                 {filteredProduits.length === 0 && (

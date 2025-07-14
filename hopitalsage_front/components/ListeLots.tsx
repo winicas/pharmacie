@@ -75,40 +75,37 @@ export default function ListeLots({
   }
 
   async function handleDeleteLot(lotId: number, produitId: number, quantite: number) {
-    const confirmDelete = window.confirm("Confirmez-vous la suppression de ce lot ? Le stock sera réduit.");
-    if (!confirmDelete) return;
+  const confirmDelete = window.confirm("Confirmez-vous la suppression de ce lot ? Le stock sera réduit.");
+  if (!confirmDelete) return;
 
-    const token = localStorage.getItem('accessToken');
-    if (!token) return;
+  const token = localStorage.getItem('accessToken');
+  if (!token) return;
 
-    try {
-      // Étape 1 : Supprimer le lot
-      await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/lots/${lotId}/`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+  try {
+    // 🔁 Patch vers lot pour déclencher le retrait + mise à jour du stock
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/lotss/${lotId}/`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        operation: 'retrait_lot',
+        quantite: quantite,
+      }),
+    });
 
-      // Étape 2 : Réduire la quantité dans ProduitPharmacie
-      await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits-pharmacie/${produitId}/`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          operation: 'retrait_lot',
-          quantite: quantite,
-        }),
-      });
+    if (!res.ok) throw new Error('Échec du retrait');
 
-      // Étape 3 : Mettre à jour l’interface
-      setLots((prev) => prev.filter((lot) => lot.id !== lotId));
-      alert("✅ Lot supprimé et stock mis à jour !");
-    } catch (error) {
-      console.error('Erreur lors de la suppression :', error);
-      alert("❌ Une erreur est survenue.");
-    }
+    // ✅ Mise à jour UI
+    setLots((prev) => prev.filter((lot) => lot.id !== lotId));
+    alert("✅ Lot supprimé et stock mis à jour !");
+  } catch (error) {
+    console.error('Erreur lors du retrait :', error);
+    alert("❌ Une erreur est survenue.");
   }
+}
+
 
   if (!produitId) return null;
 
