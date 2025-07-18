@@ -69,13 +69,15 @@ export default function DashboardPharmacie() {
 
     fetchData();
   }, [router]);
-useEffect(() => {
-  const timer = setTimeout(() => {
-    setAfficherAlerte(true);
-  }, 300000); // 5 minutes
 
-  return () => clearTimeout(timer);
-}, []);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAfficherAlerte(true);
+    }, 300000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
@@ -139,10 +141,10 @@ useEffect(() => {
 
       <div className="space-y-2">
         {afficherAlerte && (
-  <h2 className="text-sm text-gray-600 italic text-right mb-4">
-    🔔 Pensez à sauvegarder vos données chaque soir avant de fermer la pharmacie pour sécuriser vos ventes et recevoir les mises à jour. ⏳ Cette opération peut prendre entre 20 à 40 minutes, merci de patienter jusqu’à la fin.
-  </h2>
-)}
+          <h2 className="text-sm text-gray-600 italic text-right mb-4">
+            🔔 Pensez à sauvegarder vos données chaque soir avant de fermer la pharmacie pour sécuriser vos ventes et recevoir les mises à jour. ⏳ Cette opération peut prendre entre 20 à 40 minutes, merci de patienter jusqu’à la fin.
+          </h2>
+        )}
         <div className="flex gap-4">
           <button
             className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
@@ -208,6 +210,43 @@ useEffect(() => {
           <StatCard label="Produit le plus vendu" value={stats.produit_plus_vendu} />
         </div>
       )}
+
+      {/* Liste des clients avec RDV */}
+      <div>
+        <h3 className="text-xl font-semibold text-emerald-700 mb-4">Liste des clients avec rendez-vous</h3>
+        {clients.length === 0 ? (
+          <p className="text-gray-500">Aucun client enregistré.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {clients.map(client => {
+              const colorClass = getColor(client.rendez_vous);
+              const message = getRdvMessage(client.rendez_vous);
+
+              return (
+                <div
+                  key={client.id}
+                  className={`p-4 border rounded shadow-sm bg-gray-50 ${colorClass}`}
+                >
+                  <p className="font-semibold text-gray-800">{client.nom_complet}</p>
+                  <p className="text-sm text-gray-600">📞 {client.telephone}</p>
+                  {client.rendez_vous ? (
+                    <>
+                      <p className="text-xs italic text-gray-700">
+                        Rendez-vous: {new Date(client.rendez_vous).toLocaleDateString()}
+                      </p>
+                      <span className="text-xs mt-1 inline-block px-2 py-1 rounded-full bg-opacity-70 bg-black text-white">
+                        {message}
+                      </span>
+                    </>
+                  ) : (
+                    <p className="text-xs text-gray-500">Pas de rendez-vous</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -219,4 +258,32 @@ function StatCard({ label, value }: { label: string; value: string }) {
       <p className="text-xl font-bold text-emerald-900">{value}</p>
     </div>
   );
+}
+
+function getColor(dateStr: string | null): string {
+  if (!dateStr) return '';
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const rdvDate = new Date(dateStr);
+  rdvDate.setHours(0, 0, 0, 0);
+  const diffDays = Math.floor((rdvDate.getTime() - todayStart.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return 'bg-green-100';
+  if (diffDays === 0) return 'bg-red-300';
+  if (diffDays === 1) return 'bg-orange-300';
+  if (diffDays === 2) return 'bg-yellow-300';
+  return 'bg-green-50';
+}
+
+function getRdvMessage(dateStr: string | null): string {
+  if (!dateStr) return '';
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const rdvDate = new Date(dateStr);
+  rdvDate.setHours(0, 0, 0, 0);
+  const diffDays = Math.floor((rdvDate.getTime() - todayStart.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return 'RDV passé';
+  if (diffDays === 0) return "Aujourd'hui";
+  if (diffDays === 1) return 'Demain';
+  if (diffDays === 2) return 'Dans 2 jours';
+  return `Dans ${diffDays} jours`;
 }

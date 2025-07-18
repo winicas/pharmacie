@@ -77,7 +77,7 @@ const SidebarPharmacie = ({ onClose }: { onClose?: () => void }) => {
           src={
             pharmacie?.logo_pharm
               ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${pharmacie.logo_pharm}`
-              : '/logo.jpeg'
+              : '/nicapharm.png'
           }
           onError={(e) => {
             e.currentTarget.onerror = null;

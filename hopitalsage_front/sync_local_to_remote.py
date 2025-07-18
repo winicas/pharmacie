@@ -1,14 +1,14 @@
+# sync_local_to_remote.py
 import os
 import sys
-from datetime import datetime
 from django.utils import timezone
+from django.db import connections
+from django.db.utils import IntegrityError
 
-# Chemin vers le projet Django
+# Config Django
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 DJANGO_BASE_DIR = os.path.abspath(os.path.join(CURRENT_DIR, '..'))
 sys.path.append(DJANGO_BASE_DIR)
-
-# Configuration Django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "gestion_pharmacie.settings")
 import django
 django.setup()
@@ -22,19 +22,19 @@ from pharmacie.models import (
     RendezVous, PublicitePharmacie, DepotPharmaceutique
 )
 
-from django.db import connections
-from django.db.utils import IntegrityError
-
 REMOTE = connections['remote']
 
-# Liste ordonnée des modèles à synchroniser
-MODELS = [
-    User,
-    Pharmacie,
+MODELS_GLOBAL = [
     TauxChange,
     Fabricant,
     DepotPharmaceutique,
     ProduitFabricant,
+    PublicitePharmacie,
+]
+
+MODELS_PAR_PHARMACIE = [
+    User,
+    Pharmacie,
     ProduitPharmacie,
     LotProduitPharmacie,
     CommandeProduit,
@@ -49,49 +49,52 @@ MODELS = [
     Prescription,
     Requisition,
     RendezVous,
-    PublicitePharmacie,
 ]
 
+def get_current_pharmacie():
+    return Pharmacie.objects.using('default').first()
 
 def has_updated_at(obj):
     return hasattr(obj, 'updated_at') and obj.updated_at is not None
 
+def sync_model_to_remote(model, filter_kwargs=None):
+    qs = model.objects.using('default')
+    if filter_kwargs:
+        qs = qs.filter(**filter_kwargs)
 
-def sync_model_to_remote(model):
-    print(f"\n🔄 Synchronisation du modèle {model.__name__} depuis local vers Render...")
+    print(f"\n🔄 {model.__name__} local ➜ Render...")
 
-    # Charger tous les IDs de Render une seule fois
     remote_ids = set(model.objects.using('remote').values_list('pk', flat=True))
 
-    for local_obj in model.objects.using('default').iterator():  # Plus léger que .all()
-        if local_obj.pk not in remote_ids:
-            print(f"➕ Ajout de {model.__name__} (id={local_obj.pk}) sur Render")
+    for obj in qs.iterator():
+        if obj.pk not in remote_ids:
+            print(f"➕ {model.__name__} (id={obj.pk}) ➜ remote")
             try:
-                local_obj.save(using='remote')
+                obj.save(using='remote')
             except IntegrityError as e:
-                print(f"⚠️ Erreur Integrity lors de l'ajout: {e}")
+                print(f"⚠️ IntegrityError: {e}")
         else:
-            if has_updated_at(local_obj):
-                try:
-                    remote_obj = model.objects.using('remote').get(pk=local_obj.pk)
-                    if has_updated_at(remote_obj) and local_obj.updated_at > remote_obj.updated_at:
-                        print(f"📝 Mise à jour de {model.__name__} (id={local_obj.pk}) sur Render")
-                        local_obj.save(using='remote')
-                except Exception as e:
-                    print(f"❌ Erreur lors de la comparaison ou de la mise à jour : {e}")
-            else:
-                pass  # Pas de champ updated_at, donc on ne met pas à jour
-
+            if has_updated_at(obj):
+                remote_obj = model.objects.using('remote').get(pk=obj.pk)
+                if has_updated_at(remote_obj) and obj.updated_at > remote_obj.updated_at:
+                    print(f"📝 Update {model.__name__} (id={obj.pk}) ➜ remote")
+                    obj.save(using='remote')
 
 def run():
-    print("\n🚀 Lancement de la synchronisation locale vers Render...")
-    for model in MODELS:
-        try:
-            sync_model_to_remote(model)
-        except Exception as e:
-            print(f"❌ Erreur pendant la synchronisation du modèle {model.__name__} : {e}")
-    print("\n✅ Synchronisation locale vers Render terminée avec succès.")
+    print("\n🚀 Sync LOCAL ➜ RENDER")
 
+    pharmacie = get_current_pharmacie()
+    if not pharmacie:
+        print("❌ Aucune pharmacie locale trouvée.")
+        return
+
+    for model in MODELS_GLOBAL:
+        sync_model_to_remote(model)
+
+    for model in MODELS_PAR_PHARMACIE:
+        sync_model_to_remote(model, {'pharmacie': pharmacie})
+
+    print("\n✅ Synchronisation locale ➜ Render terminée.")
 
 if __name__ == "__main__":
     run()

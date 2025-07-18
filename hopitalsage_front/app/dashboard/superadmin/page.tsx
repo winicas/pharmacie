@@ -85,21 +85,18 @@ const SuperAdminDashboard = () => {
     if (syncLoading) {
       setProgress(0);
       interval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 90) return prev;
-          return prev + Math.floor(Math.random() * 5) + 2;
-        });
+        setProgress((prev) => (prev >= 90 ? prev : prev + Math.floor(Math.random() * 5) + 2));
       }, 250);
     }
     return () => clearInterval(interval);
   }, [syncLoading]);
 
   const sync = async (direction: 'remote_to_local' | 'local_to_remote') => {
-    const confirmationMessage =
+    const confirmed = window.confirm(
       direction === 'remote_to_local'
         ? 'Confirmez-vous la synchronisation de Render vers Local ?'
-        : 'Confirmez-vous la synchronisation de Local vers Render ?';
-    const confirmed = window.confirm(confirmationMessage);
+        : 'Confirmez-vous la synchronisation de Local vers Render ?'
+    );
     if (!confirmed) return;
 
     setSyncLoading(true);
@@ -114,11 +111,7 @@ const SuperAdminDashboard = () => {
       });
       const data = await res.json();
       setProgress(100);
-      if (data.success) {
-        setSyncLog(`✅ ${data.message || 'Synchronisation terminée avec succès.'}`);
-      } else {
-        setSyncLog(`❌ ${data.error || 'Erreur inconnue.'}`);
-      }
+      setSyncLog(data.success ? `✅ ${data.message}` : `❌ ${data.error}`);
     } catch (err) {
       setProgress(100);
       setSyncLog('❌ Erreur lors de la synchronisation.');
@@ -154,15 +147,15 @@ const SuperAdminDashboard = () => {
     }
   };
 
-  const handleAdd30Days = (id: number, currentDate?: string) => {
-    const newDate = addThirtyDays(currentDate);
-    handleDateChange(id, newDate);
-  };
-
   const addThirtyDays = (dateStr?: string): string => {
     const date = dateStr ? new Date(dateStr) : new Date();
     date.setDate(date.getDate() + 30);
     return date.toISOString().split('T')[0];
+  };
+
+  const handleAdd30Days = (id: number, currentDate?: string) => {
+    const newDate = addThirtyDays(currentDate);
+    handleDateChange(id, newDate);
   };
 
   const handleToggleActivation = async (id: number, isActive: boolean) => {
@@ -192,16 +185,16 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const isExpired = (dateStr?: string) => {
+    if (!dateStr) return false;
+    return new Date(dateStr) < new Date();
+  };
+
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const currentPharmacies = pharmacies.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   const totalPages = Math.ceil(pharmacies.length / ITEMS_PER_PAGE);
 
   const paginate = (page: number) => setCurrentPage(page);
-
-  const isExpired = (dateStr?: string): boolean => {
-    if (!dateStr) return false;
-    return new Date(dateStr) < new Date();
-  };
 
   if (loading || !user) {
     return (
@@ -211,7 +204,7 @@ const SuperAdminDashboard = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
           className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#007BFF]"
-        ></motion.div>
+        />
       </div>
     );
   }
@@ -231,52 +224,50 @@ const SuperAdminDashboard = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="text-3xl font-bold text-center text-[#007BFF] mb-6"
+            className="text-3xl font-bold text-center text-[#007BFF]"
           >
             Tableau de Bord SuperAdmin
           </motion.h1>
 
-          {/* Boutons de synchronisation */}
+          {/* Section synchronisation */}
           <div className="space-y-2 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-4">
             <h2 className="text-lg font-semibold">Synchronisation des données</h2>
             <div className="flex gap-4">
               <button
-                className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
                 onClick={() => sync('remote_to_local')}
                 disabled={syncLoading}
+                className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
               >
                 🔄 Cloud vers Local
               </button>
               <button
-                className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
                 onClick={() => sync('local_to_remote')}
                 disabled={syncLoading}
+                className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
               >
                 🔼 Local vers Cloud
               </button>
             </div>
             {(syncLoading || syncLog) && (
-              <div className="space-y-2 mt-2">
-                <div className="relative w-full h-6 rounded-full overflow-hidden bg-gray-200">
+              <>
+                <div className="relative w-full h-6 rounded-full overflow-hidden bg-gray-200 mt-2">
                   <div
-                    className="absolute left-0 top-0 h-full transition-all duration-300 ease-out"
+                    className="absolute left-0 top-0 h-full transition-all duration-300"
                     style={{
                       width: `${progress}%`,
                       background: progress === 100 && syncLog?.startsWith('✅')
-                        ? 'linear-gradient(to right, #00c851, #007e33)'
+                        ? '#28a745'
                         : progress === 100 && syncLog?.startsWith('❌')
-                        ? 'linear-gradient(to right, #ff4444, #cc0000)'
-                        : 'linear-gradient(to right, #00c6ff, #0072ff)',
+                        ? '#dc3545'
+                        : '#007BFF',
                     }}
-                  ></div>
-                  <div className="absolute w-full h-full flex items-center justify-center font-medium text-gray-800">
+                  />
+                  <div className="absolute w-full h-full flex items-center justify-center text-sm">
                     {progress}%
                   </div>
                 </div>
-                <div className="text-center text-sm text-gray-700 italic">
-                  {syncLoading ? 'Veuillez patienter...' : syncLog}
-                </div>
-              </div>
+                <div className="text-center text-sm italic">{syncLog}</div>
+              </>
             )}
           </div>
 
@@ -284,13 +275,83 @@ const SuperAdminDashboard = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
             className="bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-4"
           >
-            <h2 className="text-2xl font-bold text-[#007BFF] mb-4">
-              Pharmacies Enregistrées
-            </h2>
-            {/* Table ... (reste inchangé) */}
+            <h2 className="text-2xl font-bold text-[#007BFF] mb-4">Pharmacies Enregistrées</h2>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nom</TableHead>
+                  <TableHead>Commune</TableHead>
+                  <TableHead>Adresse</TableHead>
+                  <TableHead>Téléphone</TableHead>
+                  <TableHead>Expiration</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {currentPharmacies.length > 0 ? (
+                  currentPharmacies.map((p) => (
+                    <TableRow key={p.id} className={isExpired(p.date_expiration) ? 'bg-red-100 dark:bg-red-900' : ''}>
+                      <TableCell>{p.nom_pharm}</TableCell>
+                      <TableCell>{p.commune_pharm}</TableCell>
+                      <TableCell>{p.adresse_pharm}</TableCell>
+                      <TableCell>{p.telephone}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-2">
+                          <input
+                            type="date"
+                            value={p.date_expiration?.split('T')[0] || ''}
+                            onChange={(e) => handleDateChange(p.id, e.target.value)}
+                            className="border rounded px-2 py-1 text-sm"
+                          />
+                          <button
+                            onClick={() => handleAdd30Days(p.id, p.date_expiration)}
+                            className="text-xs text-blue-600 underline"
+                          >
+                            Ajouter 30 jours
+                          </button>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <button
+                          onClick={() => handleToggleActivation(p.id, p.is_active)}
+                          className={`inline-block py-1 px-2 rounded-md text-white ${
+                            p.is_active ? 'bg-gray-500 hover:bg-gray-700' : 'bg-green-600 hover:bg-green-800'
+                          }`}
+                        >
+                          {p.is_active ? 'Désactiver' : 'Activer'}
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center">
+                      Aucune pharmacie trouvée
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+
+            {/* Pagination */}
+            <div className="flex justify-center mt-4 space-x-2">
+              {Array.from({ length: totalPages }, (_, i) => (
+                <button
+                  key={i}
+                  onClick={() => paginate(i + 1)}
+                  className={`px-3 py-1 rounded ${
+                    currentPage === i + 1
+                      ? 'bg-[#007BFF] text-white'
+                      : 'bg-gray-200 hover:bg-gray-300'
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
           </motion.div>
         </main>
       </div>

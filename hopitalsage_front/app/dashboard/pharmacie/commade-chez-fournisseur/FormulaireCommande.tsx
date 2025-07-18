@@ -10,7 +10,7 @@ import { motion } from 'framer-motion';
 import ApercuBonCommande from '../commade-chez-fournisseur/ApercuBonCommande';
 
 export interface ProduitFabricant {
-  id: number;
+  id: string;
   nom: string;
 }
 
@@ -21,10 +21,10 @@ interface LigneCommande {
   identifiant: string;
   prix_achat: number;
   taux_change: number;
-  id?: number;
+  id?: string;
 }
 export interface ProduitFabricant {
-  id: number;
+  id: string;
   nom: string;
   prix_achat_cdf: number; // 🔁 Ajout ici
   
@@ -75,7 +75,7 @@ useEffect(() => {
   }, [accessToken]);
 
   const handleFabricantSelect = async (id: string) => {
-    const fabricant = fabricants.find((f) => f.id === parseInt(id));
+    const fabricant = fabricants.find((f) => f.id === id);
     setSelectedFabricant(fabricant);
     setShowPDF(false);
     setPanier([]);
@@ -210,7 +210,14 @@ const totalUSD = panier.reduce((acc, p) => {
     return;
   }
 
-  const idProduit = req.produit_fabricant_id;
+ const idProduit = req.produit_fabricant_id?.toString()?.split('.')[0] || '';
+
+if (!idProduit) {
+  alert("Ce produit n'a pas d'ID valide. Veuillez contacter l'administrateur.");
+  return;
+}
+
+
 
   if (!idProduit) {
     alert("Ce produit n'a pas d'ID valide. Veuillez contacter l'administrateur.");
@@ -218,7 +225,14 @@ const totalUSD = panier.reduce((acc, p) => {
   }
 
   // 🔍 Cherche le produit correspondant dans la liste des produits sélectionnés
-  const produitDetail = produits.find((p) => p.id === idProduit);
+  console.log("Reçu ID brut :", req.produit_fabricant_id);
+console.log("Transformé ID :", idProduit);
+console.log("IDs disponibles :", produits.map(p => p.id));
+
+  console.log("🔍 ID produit requisition :", idProduit);
+  console.log("📦 Liste des produits :", produits.map(p => p.id));
+
+  const produitDetail = produits.find((p) => p.id === String(idProduit));
 
   if (!produitDetail) {
     alert("Impossible de retrouver les informations du produit. Veuillez recharger la page.");

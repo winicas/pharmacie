@@ -17,7 +17,8 @@ interface User {
 export default function CreateProduit() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [fabricants, setFabricants] = useState<{ id: number; nom: string }[]>([])
-  const [fabricantId, setFabricantId] = useState<number | ''>('')
+  const [fabricantId, setFabricantId] = useState<string | ''>('')  // UUID string
+
   const [nom, setNom] = useState('')
   const [prixAchat, setPrixAchat] = useState<number | ''>('')
   const [nombrePlaquettes, setNombrePlaquettes] = useState<number | ''>('') 
@@ -69,7 +70,7 @@ export default function CreateProduit() {
       await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits-fabricants/`,
         {
-          fabricant: Number(fabricantId),
+          fabricant: (fabricantId),
           nom,
           prix_achat: prixAchat,
           devise: 'USD',
@@ -142,7 +143,7 @@ export default function CreateProduit() {
             <select
               id="fabricant"
               value={fabricantId}
-              onChange={(e) => setFabricantId(Number(e.target.value))}
+              onChange={(e) => setFabricantId(e.target.value)}
               className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm"
               required
             >

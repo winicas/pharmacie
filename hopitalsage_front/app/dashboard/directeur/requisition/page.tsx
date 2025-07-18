@@ -6,14 +6,14 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 
 interface Pharmacie {
-  id: number;
+  id: string;
   nom_pharm: string;
   adresse_pharm: string;
   telephone: string | null;
 }
 
 interface ProduitFabricant {
-  id: number;
+  id: string;
   nom: string;
   fabricant: number;
   fabricant_nom: string;

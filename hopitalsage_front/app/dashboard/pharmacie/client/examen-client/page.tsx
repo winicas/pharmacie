@@ -5,13 +5,13 @@ import axios from 'axios'
 import { useParams } from 'next/navigation'
 
 interface Client {
-  id: number
+  id: string
   nom_complet: string
   telephone: string
 }
 
 interface Exam {
-  id: number
+  id: string
   tension_arterielle: string
   examen_malaria: string
   date_exam: string
@@ -30,12 +30,14 @@ export default function ExamensClient() {
 
   useEffect(() => {
     // Chargement des données client et examens
-    axios.get(`https://pharmacie-hefk.onrender.com/api/clients/${clientId}/`, {
+    console.log("clientId envoyé:", clientId)
+
+    axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/clients/${clientId}/`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
     })
     .then(response => setClient(response.data))
     
-    axios.get(`https://pharmacie-hefk.onrender.com/api/exams/?client=${clientId}`, {
+    axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/exams/?client=${clientId}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
     })
     .then(response => setExamens(response.data))
@@ -45,7 +47,7 @@ export default function ExamensClient() {
     e.preventDefault()
     
     try {
-      await axios.post('https://pharmacie-hefk.onrender.com/api/exams/', {
+      await axios.post(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/exams/`, {
         client: clientId,
         ...newExam
       }, {
@@ -53,7 +55,7 @@ export default function ExamensClient() {
       })
       
       // Rechargement des examens
-      const response = await axios.get(`https://pharmacie-hefk.onrender.com/api/exams/?client=${clientId}`)
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/exams/?client=${clientId}`)
       setExamens(response.data)
       setNewExam({ tension_arterielle: '', examen_malaria: '', remarques: '' })
       alert('Examen ajouté avec succès !')

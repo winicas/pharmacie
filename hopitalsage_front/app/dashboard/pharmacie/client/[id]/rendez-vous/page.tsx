@@ -9,7 +9,7 @@ import PharmacieLayout from '@/app/dashboard/directeur/layout'; // ✅ Import du
 
 interface RendezVous {
   id: number;
-  client: number;
+  client: string;
   date: string;
   heure: string;
   statut: 'à venir' | 'passé';
@@ -17,7 +17,7 @@ interface RendezVous {
 
 export default function RendezVousPage() {
   const { id } = useParams(); // ✅ Récupère le paramètre [id] via useParams()
-  const clientId = parseInt(id as string); // ✅ Cast vers string si nécessaire
+  const clientId = id as string; // ✅ Cast vers string si nécessaire
 
   const [date, setDate] = useState<Date | null>(null);
   const [rendezVous, setRendezVous] = useState<RendezVous[]>([]);

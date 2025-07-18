@@ -1,5 +1,6 @@
 from rest_framework.routers import DefaultRouter
 from django.urls import path, include
+from uuid import UUID
 from .views import (
     FabricantViewSet,
     ProduitFabricantViewSet,
@@ -67,13 +68,13 @@ router.register(r'lotss', LotsProduitPharmacieViewSet, basename='lot')
 urlpatterns = [
     path('api/', include(router.urls)),
     path('api/requisitions/reset/', reset_requisitions),
-    path('api/rendez-vous/client/<int:client_id>/', RendezVousByClientView.as_view()),
+    path('api/rendez-vous/client/<uuid:client_id>/', RendezVousByClientView.as_view()),
     path('api/rendez-vous/', RendezVousListCreateView.as_view()),
     path('api/clients-avec-rendezvous/', clients_avec_rendezvous, name='clients-avec-rendezvous'),
     path('api/sauvegarde-sql/', sauvegarde_sql, name='sauvegarde_sql'),
     path('api/copier-usb/', copier_vers_usb, name='copier_vers_usb'),
-    path('api/produits/<int:fabricant_id>/', produits_par_fabricants, name='api_produits_fabricant'),
-    path('api/produit/<int:produit_id>/modifier/', modifier_prix_produit, name='api_modifier_prix'),
+    path('api/produits/<uuid:fabricant_id>/', produits_par_fabricants, name='api_produits_fabricant'),
+    path('api/produit/<uuid:produit_id>/modifier/', modifier_prix_produit, name='api_modifier_prix'),
     path('api/publicite-active/', PubliciteActuelleView.as_view(), name='publicite-active'),
     path('api/publicite-upload/', PubliciteUploadView.as_view(), name='publicite-upload'),
     path('api/logout/', LogoutAPIView.as_view(), name='custom_logout'),
@@ -84,11 +85,11 @@ urlpatterns = [
     # Produits par fabricant
     path('api/produits-fabricant/', produits_par_fabricant, name='produits-par-fabricant'),
     path('api/user/me/', MeView.as_view(), name='user-me'),
-    path('api/fabricants/<int:pk>/produits/', ProduitsDuFabricantView.as_view()),
+    path('api/fabricants/<uuid:pk>/produits/', ProduitsDuFabricantView.as_view()),
     
     path('api/produits-alerte/', produits_en_alerte, name='produits-alerte'),
     #path('api/produits-alerte/', ProduitsAlerteAPIView.as_view(), name='produits-alerte'),
-    path('api/requisitions/<int:pk>/incrementer/', incrementer_demande),
+    path('api/requisitions/<uuid:pk>/incrementer/', incrementer_demande),
     # Création d'une vente
     path('api/ventes/', VenteCreateAPIView.as_view(), name='vente-create'),
     path('api/statistiques-du-jour/', statistiques_du_jour),
@@ -100,13 +101,13 @@ urlpatterns = [
     path('api/commandes-produitss/', CommandeProduitListView.as_view(), name='liste-commandes-produits'),
     path('api/produits-pharmacie/', ProduitPharmacieListAPIView.as_view(), name='produits-pharmacie'),
     path('api/reception/confirm/', ConfirmerReceptionView.as_view(), name='confirmer-reception'),
-    path('api/commande/<int:pk>/', CommandeDetailView.as_view(), name='commande-detail'),
+    path('api/commande/<uuid:pk>/', CommandeDetailView.as_view(), name='commande-detail'),
 
     # Liste des pharmacies de l'utilisateur connecté
     path('api/pharmacie/', PharmacieUserListAPIView.as_view(), name='pharmacie-user'),
-    path('api/clients/<int:pk>/examen/', CreateMedicalExamView.as_view(), name='create-exam'),
-    path('api/clients/<int:pk>/ordonnance/', CreatePrescriptionView.as_view(), name='create-prescription'),
-    path('api/clients/<int:pk>/dossier-medical/', DossierMedicalClientView.as_view(), name='dossier-medical'),
+    path('api/clients/<uuid:pk>/examen/', CreateMedicalExamView.as_view(), name='create-exam'),
+    path('api/clients/<uuid:pk>/ordonnance/', CreatePrescriptionView.as_view(), name='create-prescription'),
+    path('api/clients/<uuid:pk>/dossier-medical/', DossierMedicalClientView.as_view(), name='dossier-medical'),
     
    
     

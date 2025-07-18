@@ -47,10 +47,7 @@ export default function CreateDirector() {
     e.preventDefault();
     try {
       // Convertir pharmacie_id en nombre
-      const pharmacieId = parseInt(formData.pharmacie_id, 10);
-      if (isNaN(pharmacieId)) {
-        throw new Error('ID de pharmacie invalide');
-      }
+      const pharmacieId = formData.pharmacie_id;
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/create-director/${pharmacieId}/`,

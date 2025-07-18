@@ -62,7 +62,7 @@ class FabricantSerializer(serializers.ModelSerializer):
         model = Fabricant
         fields = ['id', 'nom', 'pays_origine', 'produits']
 ######################### Enregistrement de medicament dans une pharmacie ##################
-# medicamentsn/serializers.py
+
 from rest_framework import serializers
 from .models import ProduitPharmacie, ProduitFabricant
 from rest_framework import serializers
@@ -93,7 +93,7 @@ from .models import LotProduitPharmacie
 
 class LotProduitPharmacieSerializer(serializers.ModelSerializer):
     nom_medicament = serializers.CharField(source='produit.nom_medicament', read_only=True)
-    pharmacie_id = serializers.IntegerField(source='produit.pharmacie.id', read_only=True)
+    pharmacie_id = serializers.CharField(source='produit.pharmacie.id', read_only=True)
 
     class Meta:
         model = LotProduitPharmacie
@@ -114,9 +114,22 @@ from .models import LotProduitPharmacie
 from .models import ProduitPharmacie
 
 class LotsProduitPharmacieSerializer(serializers.ModelSerializer):
+    nom_medicament = serializers.CharField(source='produit.nom_medicament', read_only=True)
+    pharmacie_id = serializers.CharField(source='produit.pharmacie.id', read_only=True)
     class Meta:
         model = LotProduitPharmacie
-        fields = '__all__'
+        fields = [
+            'id',
+            'produit',  # 👈 Assurez-vous qu'il est présent
+            'nom_medicament',
+            'numero_lot',
+            'date_peremption',
+            'date_entree',
+            'quantite',
+            'prix_achat',
+            'prix_vente',
+            'pharmacie_id',  # 👈 Champ ajouté pour simplifier l'accès frontend
+        ]
 
     def update(self, instance, validated_data):
         operation = self.context['request'].data.get('operation', None)
@@ -720,7 +733,7 @@ class RequisitionSerializer(serializers.ModelSerializer):
     nom_produit = serializers.SerializerMethodField()
     fabricant_nom = serializers.SerializerMethodField()
     prix_achat = serializers.SerializerMethodField()
-    produit_fabricant_id = serializers.IntegerField(source='produit_fabricant.id', read_only=True)
+    produit_fabricant_id = serializers.SerializerMethodField()
 
     # 🔁 Champ pharmacie ajouté ici 👇
     pharmacie = serializers.PrimaryKeyRelatedField(queryset=Pharmacie.objects.all())
@@ -774,6 +787,11 @@ class RequisitionSerializer(serializers.ModelSerializer):
         if obj.produit_fabricant and hasattr(obj.produit_fabricant, 'prix_achat'):
             return obj.produit_fabricant.prix_achat
         return None
+    def get_produit_fabricant_id(self, obj):
+        if obj.produit_fabricant:
+            return str(obj.produit_fabricant.id)
+        return None
+
 # serializers.py
 class RendezVousSerializer(serializers.ModelSerializer):
     class Meta:

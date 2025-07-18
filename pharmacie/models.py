@@ -1,18 +1,20 @@
 from django.db import models
 from comptes.models import Pharmacie, User
+import uuid
 
-# 1. Fabricant
+
 class Fabricant(models.Model):
-    nom = models.CharField(max_length=255, db_index=True)
-    pays_origine = models.CharField(max_length=100, blank=True, null=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    nom = models.CharField(max_length=255)
+    pays_origine = models.CharField(max_length=255)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.nom
 
-
 class DepotPharmaceutique(models.Model):
-    fabricant = models.ForeignKey(Fabricant, on_delete=models.CASCADE, related_name='depots')
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    fabricant = models.ForeignKey('Fabricant', on_delete=models.CASCADE, related_name='depots')
     nom_depot = models.CharField(max_length=255)
     ville = models.CharField(max_length=255)
     commune = models.CharField(max_length=255)
@@ -20,33 +22,33 @@ class DepotPharmaceutique(models.Model):
     adresse_complete = models.TextField()
     latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
-    telephone = models.CharField(max_length=20, blank=True, null=True)  # téléphone optionnel
+    telephone = models.CharField(max_length=20, blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.nom_depot} - {self.fabricant.nom}"
 
-# 2. Produit générique par fabricant
-from django.db import models
-
 class TauxChange(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     taux = models.DecimalField(max_digits=10, decimal_places=2)
     date = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Taux du {self.date} : {self.taux}"
+        return f"Taux du {self.date}: {self.taux}"
+
 class ProduitFabricant(models.Model):
     DEVISES = (
         ('USD', 'Dollar américain'),
         ('CDF', 'Franc congolais'),
     )
 
-    fabricant = models.ForeignKey(Fabricant, on_delete=models.CASCADE, related_name='produits',db_index=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    fabricant = models.ForeignKey('Fabricant', on_delete=models.CASCADE, related_name='produits', db_index=True)
     nom = models.CharField(max_length=255, db_index=True)
     prix_achat = models.DecimalField(max_digits=10, decimal_places=5)
     devise = models.CharField(max_length=3, choices=DEVISES, default='CDF')
-    nombre_plaquettes_par_boite = models.PositiveIntegerField(default=1)  # 👈 Ajout important
+    nombre_plaquettes_par_boite = models.PositiveIntegerField(default=1)
     updated_at = models.DateTimeField(auto_now=True)
 
     def prix_achat_cdf(self):
@@ -54,7 +56,7 @@ class ProduitFabricant(models.Model):
             try:
                 taux_actuel = TauxChange.objects.latest('date').taux
             except TauxChange.DoesNotExist:
-                taux_actuel = 1  # fallback
+                taux_actuel = 1
             return self.prix_achat * taux_actuel
         return self.prix_achat
 
@@ -71,6 +73,7 @@ class ProduitFabricant(models.Model):
 from decimal import Decimal, InvalidOperation
 
 class ProduitPharmacie(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     pharmacie = models.ForeignKey(Pharmacie, on_delete=models.CASCADE, related_name='produits_pharmacie')
     produit_fabricant = models.ForeignKey(ProduitFabricant, on_delete=models.CASCADE)
     code_barre = models.CharField(max_length=100, unique=True)
@@ -122,11 +125,8 @@ from decimal import Decimal
 import string
 import random
 
-from django.db import models
-import string
-import random
-
 class LotProduitPharmacie(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     produit = models.ForeignKey(
         'ProduitPharmacie',
         on_delete=models.CASCADE,
@@ -170,6 +170,7 @@ class LotProduitPharmacie(models.Model):
         return f"{self.produit.nom_medicament} | Lot: {self.numero_lot or 'N/A'} | Péremption: {self.date_peremption} | Qté: {self.quantite}"
 
 class CommandeProduit(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     pharmacie = models.ForeignKey(Pharmacie, on_delete=models.CASCADE  )
     date_commande = models.DateTimeField(auto_now_add=True)
     etat = models.CharField(max_length=50, default="en_attente")
@@ -181,6 +182,7 @@ from django.db import models
 from .models import TauxChange
 
 class CommandeProduitLigne(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     commande = models.ForeignKey('CommandeProduit', on_delete=models.CASCADE, related_name='lignes')
     produit_fabricant = models.ForeignKey('ProduitFabricant', on_delete=models.CASCADE)
     quantite_commandee = models.PositiveIntegerField()
@@ -203,6 +205,7 @@ class CommandeProduitLigne(models.Model):
         super().save(*args, **kwargs)
 
 class ReceptionProduit(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     commande = models.ForeignKey(CommandeProduit, on_delete=models.CASCADE, related_name='receptions')
     date_reception = models.DateTimeField(auto_now_add=True)
     utilisateur = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
@@ -211,6 +214,7 @@ class ReceptionProduit(models.Model):
     def __str__(self):
         return f"Réception pour {self.commande.id} le {self.date_reception}"
 class ReceptionLigne(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     reception = models.ForeignKey(ReceptionProduit, on_delete=models.CASCADE, related_name='lignes')
     ligne_commande = models.ForeignKey(CommandeProduitLigne, on_delete=models.CASCADE)
     quantite_recue = models.PositiveIntegerField()
@@ -221,6 +225,7 @@ class ReceptionLigne(models.Model):
 
 from django.core.validators import RegexValidator
 class Client(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     pharmacie = models.ForeignKey(
         Pharmacie, 
         on_delete=models.CASCADE,
@@ -268,6 +273,7 @@ from django.db import models
 from django.core.validators import MinValueValidator
 
 class VenteProduit(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     pharmacie = models.ForeignKey(Pharmacie, on_delete=models.CASCADE, related_name='ventes')
     date_vente = models.DateTimeField(auto_now_add=True)
     utilisateur = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
@@ -296,6 +302,7 @@ class VenteProduit(models.Model):
         self.save(update_fields=['montant_total'])
 
 class VenteLigne(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     vente = models.ForeignKey(VenteProduit, on_delete=models.CASCADE, related_name='lignes')
     produit = models.ForeignKey(ProduitPharmacie, on_delete=models.CASCADE)
     quantite = models.PositiveIntegerField()
@@ -315,6 +322,7 @@ from django.db import models
 from django.contrib.auth.models import User
 
 class ClientPurchase(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
     produit = models.ForeignKey(ProduitPharmacie, on_delete=models.CASCADE)
     quantite = models.PositiveIntegerField()
@@ -330,6 +338,7 @@ class ClientPurchase(models.Model):
         super().save(*args, **kwargs)
 
 class MedicalExam(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
     tension_arterielle = models.CharField(max_length=10, blank=True, null=True)
     examen_malaria = models.BooleanField(default=False)
@@ -338,6 +347,7 @@ class MedicalExam(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 class Prescription(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
     medicament = models.ForeignKey(ProduitPharmacie, on_delete=models.CASCADE)
     dosage = models.CharField(max_length=50)
@@ -346,6 +356,7 @@ class Prescription(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 class Requisition(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     produit_fabricant = models.ForeignKey(ProduitFabricant, on_delete=models.SET_NULL, null=True, blank=True)
     nom_personnalise = models.CharField(max_length=100, blank=True)
     nombre_demandes = models.PositiveIntegerField(default=1)
@@ -362,6 +373,7 @@ from datetime import time, date
 
 
 class RendezVous(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     STATUT_CHOICES = [
         ('à venir', 'à venir'),
         ('passé', 'passé'),
@@ -370,6 +382,7 @@ class RendezVous(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
     date = models.DateField(default=timezone.now)  # aujourd'hui par défaut
     heure = models.TimeField(default=time(9, 0))  # 09:00 par défaut
+    pharmacie = models.ForeignKey(Pharmacie, on_delete=models.CASCADE)
     statut = models.CharField(max_length=10, choices=STATUT_CHOICES, default='à venir')
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -379,6 +392,7 @@ class RendezVous(models.Model):
 ######### PUBLICITE DE MEDICAMENT ###################
 # models.py
 class PublicitePharmacie(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     image = models.ImageField(upload_to='publicites/')
     description = models.TextField()
     date_debut = models.DateField()

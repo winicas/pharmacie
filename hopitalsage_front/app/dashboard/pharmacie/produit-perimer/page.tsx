@@ -5,12 +5,12 @@ import PharmacieLayout from '@/app/dashboard/directeur/layout'
 import Image from 'next/image'
 
 interface Lot {
-  id: number
+  id: string
   numero_lot: string
   nom_medicament: string
   date_peremption: string
   quantite: number
-  pharmacie_id: number
+  pharmacie_id: string
 }
 
 function addDays(days: number) {
@@ -28,7 +28,7 @@ export default function PageLotsExpire() {
   // 🔍 Debug Logs (tu peux les supprimer plus tard)
   const [debugData, setDebugData] = useState<{
     token?: string
-    pharmacieId?: number
+    pharmacieId?: string
     rawData?: any
     filteredData?: Lot[]
   }>({})

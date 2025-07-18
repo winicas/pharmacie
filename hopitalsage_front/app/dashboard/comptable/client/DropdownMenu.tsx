@@ -10,7 +10,7 @@ export default function DropdownMenu({ clientId }: { clientId: number }) {
   const router = useRouter();
 
   const handleNavigation = (path: string) => {
-    router.push(`/dashboard/pharmacie/client/${clientId}/${path}`);
+    router.push(`/dashboard/comptable/client/${clientId}/${path}`);
     setIsOpen(false);
   };
 
