@@ -158,7 +158,7 @@ const SidebarPharmacie = ({ onClose }: { onClose?: () => void }) => {
             </button>
 
             <img
-              src={`${process.env.NEXT_PUBLIC_API_BASE_URL}${publicite.image}`}
+              src={publicite.image}
               onError={(e) => {
                 e.currentTarget.src = '/nicapharm.png';
               }}

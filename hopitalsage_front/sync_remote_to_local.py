@@ -30,25 +30,27 @@ MODELS_GLOBAL = [
     DepotPharmaceutique,
     ProduitFabricant,
     PublicitePharmacie,
-]
-
-MODELS_PAR_PHARMACIE = [
-    User,
     Pharmacie,
-    ProduitPharmacie,
-    LotProduitPharmacie,
-    CommandeProduit,
     CommandeProduitLigne,
     ReceptionProduit,
     ReceptionLigne,
-    Client,
-    VenteProduit,
     VenteLigne,
     ClientPurchase,
     MedicalExam,
     Prescription,
+    LotProduitPharmacie
+   
+]
+
+MODELS_PAR_PHARMACIE = [
+    User,
+    ProduitPharmacie,
+    CommandeProduit,
+    Client,
+    VenteProduit, 
     Requisition,
     RendezVous,
+     
 ]
 
 def get_current_pharmacie():

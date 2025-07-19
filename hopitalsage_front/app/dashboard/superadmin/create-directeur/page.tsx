@@ -14,7 +14,8 @@ export default function CreateDirector() {
   });
 
   // État pour les pharmacies
-  const [pharmacies, setPharmacies] = useState<{ id: number; nom_pharm: string }[]>([]);
+  const [pharmacies, setPharmacies] = useState<{ id: string; nom_pharm: string }[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

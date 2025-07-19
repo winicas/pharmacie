@@ -1,4 +1,3 @@
-# sync_local_to_remote.py
 import os
 import sys
 from django.utils import timezone
@@ -25,63 +24,65 @@ from pharmacie.models import (
 REMOTE = connections['remote']
 
 MODELS_GLOBAL = [
-    TauxChange,
-    Fabricant,
-    DepotPharmaceutique,
-    ProduitFabricant,
     PublicitePharmacie,
-]
-
-MODELS_PAR_PHARMACIE = [
-    User,
-    Pharmacie,
-    ProduitPharmacie,
-    LotProduitPharmacie,
-    CommandeProduit,
     CommandeProduitLigne,
     ReceptionProduit,
     ReceptionLigne,
-    Client,
-    VenteProduit,
     VenteLigne,
     ClientPurchase,
     MedicalExam,
     Prescription,
+    LotProduitPharmacie
+   
+]
+
+MODELS_PAR_PHARMACIE = [
+    User,
+    ProduitPharmacie,
+    CommandeProduit,
+    Client,
+    VenteProduit, 
     Requisition,
     RendezVous,
+     
 ]
+
 
 def get_current_pharmacie():
     return Pharmacie.objects.using('default').first()
 
-def has_updated_at(obj):
-    return hasattr(obj, 'updated_at') and obj.updated_at is not None
-
 def sync_model_to_remote(model, filter_kwargs=None):
     qs = model.objects.using('default')
-    if filter_kwargs:
-        qs = qs.filter(**filter_kwargs)
+
+    # Vérifier si on peut filtrer par "pharmacie"
+    if filter_kwargs and 'pharmacie' in filter_kwargs:
+        if 'pharmacie' in [field.name for field in model._meta.get_fields()]:
+            qs = qs.filter(**filter_kwargs)
+        else:
+            print(f"⚠️ Le modèle {model.__name__} n'a pas de champ 'pharmacie'. Filtrage ignoré.")
 
     print(f"\n🔄 {model.__name__} local ➜ Render...")
 
-    remote_ids = set(model.objects.using('remote').values_list('pk', flat=True))
+    for local_obj in qs.iterator():
+        try:
+            remote_obj = model.objects.using('remote').get(pk=local_obj.pk)
+        except model.DoesNotExist:
+            remote_obj = None
 
-    for obj in qs.iterator():
-        if obj.pk not in remote_ids:
-            print(f"➕ {model.__name__} (id={obj.pk}) ➜ remote")
+        if not remote_obj:
+            print(f"➕ {model.__name__} (id={local_obj.pk}) ➜ Render")
             try:
-                obj.save(using='remote')
+                local_obj.save(using='remote')
             except IntegrityError as e:
                 print(f"⚠️ IntegrityError: {e}")
         else:
-            if has_updated_at(obj):
-                remote_obj = model.objects.using('remote').get(pk=obj.pk)
-                if has_updated_at(remote_obj) and obj.updated_at > remote_obj.updated_at:
-                    print(f"📝 Update {model.__name__} (id={obj.pk}) ➜ remote")
-                    obj.save(using='remote')
+            if hasattr(local_obj, 'updated_at') and hasattr(remote_obj, 'updated_at'):
+                if local_obj.updated_at > remote_obj.updated_at:
+                    print(f"📝 Update {model.__name__} (id={local_obj.pk}) ➜ Render")
+                    local_obj.save(using='remote')
 
 def run():
-    print("\n🚀 Sync LOCAL ➜ RENDER")
+    print("\n🚀 Sync LOCAL ➜ Render")
 
     pharmacie = get_current_pharmacie()
     if not pharmacie:

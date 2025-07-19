@@ -382,7 +382,6 @@ class RendezVous(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
     date = models.DateField(default=timezone.now)  # aujourd'hui par défaut
     heure = models.TimeField(default=time(9, 0))  # 09:00 par défaut
-    pharmacie = models.ForeignKey(Pharmacie, on_delete=models.CASCADE)
     statut = models.CharField(max_length=10, choices=STATUT_CHOICES, default='à venir')
     updated_at = models.DateTimeField(auto_now=True)
 
