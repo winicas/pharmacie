@@ -11,7 +11,7 @@ interface LotProduitPharmacie {
   prix_achat: string;
   prix_vente: string;
   nom_medicament: string;
-  produit: number; // requis pour mise à jour stock
+  produit: number;
 }
 
 export default function ListeLots({
@@ -26,12 +26,12 @@ export default function ListeLots({
   const [lots, setLots] = useState<LotProduitPharmacie[]>([]);
   const [editingLotId, setEditingLotId] = useState<number | null>(null);
   const [newDatePeremption, setNewDatePeremption] = useState('');
+  const [newQuantite, setNewQuantite] = useState<number | null>(null);
 
   useEffect(() => {
     if (!produitId) return;
 
     const token = localStorage.getItem('accessToken');
-
     let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/lots/?produit=${produitId}`;
     if (dateDebut) url += `&date_debut=${dateDebut}`;
     if (dateFin) url += `&date_fin=${dateFin}`;
@@ -46,10 +46,13 @@ export default function ListeLots({
       .catch((err) => console.error(err));
   }, [produitId, dateDebut, dateFin]);
 
-  async function handleSaveDate(lotId: number) {
-    if (!newDatePeremption) return alert('La date ne peut pas être vide');
+  async function handleSaveModifLot(lotId: number) {
+    if (!newDatePeremption || newQuantite === null) {
+      return alert('Tous les champs doivent être remplis');
+    }
 
     const token = localStorage.getItem('accessToken');
+    if (!token) return;
 
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/lots/${lotId}/`, {
@@ -58,7 +61,10 @@ export default function ListeLots({
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ date_peremption: newDatePeremption }),
+        body: JSON.stringify({
+          date_peremption: newDatePeremption,
+          quantite: newQuantite,
+        }),
       });
 
       if (!res.ok) throw new Error('Erreur lors de la mise à jour');
@@ -68,44 +74,42 @@ export default function ListeLots({
       setLots(lots.map((lot) => (lot.id === lotId ? updatedLot : lot)));
       setEditingLotId(null);
       setNewDatePeremption('');
+      setNewQuantite(null);
     } catch (error) {
-      alert('Erreur lors de la mise à jour de la date');
+      alert('Erreur lors de la mise à jour du lot');
       console.error(error);
     }
   }
 
   async function handleDeleteLot(lotId: number, produitId: number, quantite: number) {
-  const confirmDelete = window.confirm("Confirmez-vous la suppression de ce lot ? Le stock sera réduit.");
-  if (!confirmDelete) return;
+    const confirmDelete = window.confirm("Confirmez-vous la suppression de ce lot ? Le stock sera réduit.");
+    if (!confirmDelete) return;
 
-  const token = localStorage.getItem('accessToken');
-  if (!token) return;
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
 
-  try {
-    // 🔁 Patch vers lot pour déclencher le retrait + mise à jour du stock
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/lotss/${lotId}/`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        operation: 'retrait_lot',
-        quantite: quantite,
-      }),
-    });
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/lotss/${lotId}/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          operation: 'retrait_lot',
+          quantite: quantite,
+        }),
+      });
 
-    if (!res.ok) throw new Error('Échec du retrait');
+      if (!res.ok) throw new Error('Échec du retrait');
 
-    // ✅ Mise à jour UI
-    setLots((prev) => prev.filter((lot) => lot.id !== lotId));
-    alert("✅ Lot supprimé et stock mis à jour !");
-  } catch (error) {
-    console.error('Erreur lors du retrait :', error);
-    alert("❌ Une erreur est survenue.");
+      setLots((prev) => prev.filter((lot) => lot.id !== lotId));
+      alert("✅ Lot supprimé et stock mis à jour !");
+    } catch (error) {
+      console.error('Erreur lors du retrait :', error);
+      alert("❌ Une erreur est survenue.");
+    }
   }
-}
-
 
   if (!produitId) return null;
 
@@ -139,6 +143,7 @@ export default function ListeLots({
             {lots.map((lot) => (
               <tr key={lot.id} className="border-t text-center">
                 <td className="p-2">{lot.numero_lot || 'N/A'}</td>
+
                 <td className="p-2">
                   {editingLotId === lot.id ? (
                     <input
@@ -151,15 +156,29 @@ export default function ListeLots({
                     lot.date_peremption
                   )}
                 </td>
-                <td className="p-2">{lot.quantite}</td>
+
+                <td className="p-2">
+                  {editingLotId === lot.id ? (
+                    <input
+                      type="number"
+                      value={newQuantite ?? ''}
+                      onChange={(e) => setNewQuantite(Number(e.target.value))}
+                      className="border rounded p-1 w-20 text-center"
+                    />
+                  ) : (
+                    lot.quantite
+                  )}
+                </td>
+
                 <td className="p-2">{lot.prix_achat}</td>
                 <td className="p-2">{lot.prix_vente}</td>
                 <td className="p-2">{new Date(lot.date_entree).toLocaleDateString()}</td>
+
                 <td className="p-2 space-x-2">
                   {editingLotId === lot.id ? (
                     <>
                       <button
-                        onClick={() => handleSaveDate(lot.id)}
+                        onClick={() => handleSaveModifLot(lot.id)}
                         className="bg-green-500 text-white px-2 py-1 rounded text-sm"
                       >
                         Sauvegarder
@@ -168,6 +187,7 @@ export default function ListeLots({
                         onClick={() => {
                           setEditingLotId(null);
                           setNewDatePeremption('');
+                          setNewQuantite(null);
                         }}
                         className="bg-gray-500 text-white px-2 py-1 rounded text-sm"
                       >
@@ -180,6 +200,7 @@ export default function ListeLots({
                         onClick={() => {
                           setEditingLotId(lot.id);
                           setNewDatePeremption(lot.date_peremption);
+                          setNewQuantite(lot.quantite);
                         }}
                         className="bg-blue-500 text-white px-2 py-1 rounded text-sm"
                       >

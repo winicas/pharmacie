@@ -97,7 +97,7 @@ urlpatterns = [
     path('api/historique-mouvements/', historique_mouvements, name='historique-mouvements'),
     path('api/historique-ventes/', HistoriqueVentesAPIView.as_view(), name='historique-ventes'),
 
-    # Liste des produits d'une pharmacie
+    # Liste des produits d'une pharmacies
     path('api/commandes-produitss/', CommandeProduitListView.as_view(), name='liste-commandes-produits'),
     path('api/produits-pharmacie/', ProduitPharmacieListAPIView.as_view(), name='produits-pharmacie'),
     path('api/reception/confirm/', ConfirmerReceptionView.as_view(), name='confirmer-reception'),

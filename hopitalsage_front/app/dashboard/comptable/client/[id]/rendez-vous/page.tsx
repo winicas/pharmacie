@@ -7,7 +7,8 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import HeaderDirecteur from '@/components/HeaderDirecteur';
 import SidebarDirecteur from '@/components/SidebarDirecteur';
-// Types
+
+
 interface User {
   id: number;
   username: string;
@@ -18,7 +19,6 @@ interface User {
   role: string;
   pharmacie: number;
 }
-
 interface Pharmacie {
   id: number;
   nom_pharm: string;
@@ -27,7 +27,7 @@ interface Pharmacie {
 }
 interface RendezVous {
   id: number;
-  client: number;
+  client: string;
   date: string;
   heure: string;
   statut: 'à venir' | 'passé';
@@ -35,7 +35,7 @@ interface RendezVous {
 
 export default function RendezVousPage() {
   const { id } = useParams(); // ✅ Récupère le paramètre [id] via useParams()
-  const clientId = parseInt(id as string); // ✅ Cast vers string si nécessaire
+  const clientId = id as string; // ✅ Cast vers string si nécessaire
 
   const [date, setDate] = useState<Date | null>(null);
   const [rendezVous, setRendezVous] = useState<RendezVous[]>([]);
@@ -92,15 +92,10 @@ export default function RendezVousPage() {
   };
 
   return (
-     <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar */}
-      <SidebarDirecteur />
-
-      {/* Contenu principal */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        {user && pharmacie && <HeaderDirecteur user={user} pharmacie={pharmacie} />}
+     <div className="flex min-h-screen">
+     <SidebarDirecteur />
       <div className="p-6 max-w-2xl mx-auto bg-white rounded-xl shadow">
+         {user && pharmacie && <HeaderDirecteur user={user} pharmacie={pharmacie} />}
         <h1 className="text-xl font-semibold text-emerald-700 mb-4">
           Gérer les Rendez-vous du Client #{clientId}
         </h1>
@@ -154,6 +149,6 @@ export default function RendezVousPage() {
         </ul>
       </div>
       </div>
-</div>    
+  
   );
 }

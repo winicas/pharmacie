@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import axios from 'axios'
-import PharmacieLayout from '@/app/dashboard/directeur/layout'
+
 
 export default function TauxChangePage() {
   const [taux, setTaux] = useState<number | null>(null)
@@ -63,7 +63,7 @@ export default function TauxChangePage() {
   }
 
   return (
-    <PharmacieLayout>
+   
       <div className="p-4 max-w-md mx-auto">
         <h1 className="text-xl font-bold mb-4">Gestion du taux de change</h1>
 
@@ -91,6 +91,6 @@ export default function TauxChangePage() {
         {success && <p className="text-green-600 mt-2">Taux mis à jour avec succès !</p>}
         {error && <p className="text-red-600 mt-2">{error}</p>}
       </div>
-    </PharmacieLayout>
+   
   )
 }

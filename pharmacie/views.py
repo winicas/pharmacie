@@ -263,8 +263,6 @@ class HistoriqueVentesAPIView(APIView):
         return Response(serializer.data)
 
 ##################" Statistique Vente #################"
-
-
 class ProduitPharmacieListAPIView(generics.ListAPIView):
     serializer_class = ProduitsPharmacieSerializer
     permission_classes = [IsAuthenticated]
@@ -452,8 +450,6 @@ def produits_en_alerte(request):
 
     return Response(result)
 
-
-
 # pharmacie/views.py
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -462,7 +458,7 @@ from .models import ProduitPharmacie,Requisition
 from .serializers import ProduitAlerteSerializer,RequisitionSerializer
 
 ###################### Affiche sur ecran acceuil directeur###################
-# views.py
+
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from datetime import date

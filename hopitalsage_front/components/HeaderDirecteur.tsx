@@ -180,6 +180,7 @@ const HeaderPharmacie = ({ pharmacie, user }: HeaderPharmacieProps) => {
       submenu: [
         { href: "/dashboard/comptable/client/afficher-client", label: "Liste des clients", icon: "📁" },
         { href: "/dashboard/comptable/client/ajouter-client", label: "Ajouter un client", icon: "➕" },
+        { href: "/dashboard/comptable/client/rendez-vous", label: "Voir les Rendez vous", icon: "📁" },
       ],
       isTitle: true,
     },

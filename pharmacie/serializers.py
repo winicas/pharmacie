@@ -85,7 +85,7 @@ class ProduitPharmacieSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProduitPharmacie
         fields = '__all__'
-        read_only_fields = ['pharmacie', 'prix_achat', 'prix_vente', 'quantite']
+        read_only_fields = ['pharmacie', 'prix_achat', 'prix_vente']
 
 # serializers.py
 from rest_framework import serializers
@@ -389,8 +389,6 @@ class ReceptionProduitSerializer(serializers.ModelSerializer):
 
             return reception
 
-
-
 ###############################################
 class CommandeProduitLigneDetailSerializer(serializers.ModelSerializer):
     produit_fabricant = ProduitFabricantSerializer(read_only=True)  # Serializer imbriqué pour le produit.
@@ -413,7 +411,7 @@ from django.db import transaction
 from .models import VenteProduit, VenteLigne, ProduitPharmacie
 from comptes.models import Pharmacie
 
-# Sérialiseur ProduitPharmacie simple
+# Sérialiseur ProduitPharmacie simples
 
 class ProduitsPharmacieSerializer(serializers.ModelSerializer):
     class Meta:
@@ -587,7 +585,6 @@ class VenteProduitSerializer(serializers.ModelSerializer):
             client.update_stats()
 
         return vente
-
 
 ########################### CLIENT ET TOUT C QUI LUI CONCERNE################################
 from rest_framework import serializers

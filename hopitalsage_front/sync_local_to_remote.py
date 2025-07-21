@@ -24,7 +24,7 @@ from pharmacie.models import (
 REMOTE = connections['remote']
 
 MODELS_GLOBAL = [
-    PublicitePharmacie,
+    Pharmacie,
     CommandeProduitLigne,
     ReceptionProduit,
     ReceptionLigne,
