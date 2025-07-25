@@ -99,6 +99,7 @@ const BonCommandePDF = ({
       <View style={styles.infoSection}>
         <Text style={styles.pharmacyName}>PHARMACIE : {nomPharmacie}</Text>
         <Text>Fabricant : {fabricant.nom}</Text>
+        <Text>Téléphone : {fabricant.pays_origine}</Text>
         <Text>Date : {date}</Text>
       </View>
 
