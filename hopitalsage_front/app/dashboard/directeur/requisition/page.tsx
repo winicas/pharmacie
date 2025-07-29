@@ -222,19 +222,7 @@ export default function RequisitionPage() {
                 </div>
               )}
 
-              <input
-                className="w-full p-3 border rounded mb-2"
-                type="text"
-                placeholder="📎 Saisir manuellement un médicament"
-                value={customNom}
-                onChange={(e) => setCustomNom(e.target.value)}
-              />
-              <button
-                onClick={() => ajouterRequisition({ nom: customNom })}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full"
-              >
-                ➕ Ajouter la réquisition
-              </button>
+             
             </div>
 
             <div>

@@ -88,7 +88,7 @@ const BonCommandePDF = ({
         <View style={styles.logoBlock}>
           <Image src="/nicapharm.png" style={styles.logo} />
           <Text style={styles.generatedBy}>Généré par NICAPHARM_soft</Text>
-          <Text style={styles.phoneNumber}>+243 993053302</Text>
+          <Text style={styles.phoneNumber}>+243 856 693 433</Text>
         </View>
       </View>
 
@@ -98,8 +98,8 @@ const BonCommandePDF = ({
       {/* Infos pharmacie + fabricant + date */}
       <View style={styles.infoSection}>
         <Text style={styles.pharmacyName}>PHARMACIE : {nomPharmacie}</Text>
-        <Text>Fabricant : {fabricant.nom}</Text>
-        <Text>Téléphone : {fabricant.pays_origine}</Text>
+        <Text>Firme pharmaceutique : {fabricant.nom}</Text>
+        <Text>Téléphone  : {fabricant.pays_origine}</Text>
         <Text>Date : {date}</Text>
       </View>
 

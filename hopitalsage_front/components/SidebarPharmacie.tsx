@@ -134,7 +134,7 @@ const SidebarPharmacie = ({ onClose }: { onClose?: () => void }) => {
 
         {/* Paiement Abonnement */}
         <div className="bg-white/10 backdrop-blur-lg p-4 rounded-2xl text-white text-sm shadow">
-          <h3 className="font-bold mb-1">💰 Paiement Abonnement</h3>
+          <h3 className="font-bold mb-1">💰 Compte paiement</h3>
           <p>Numéro : <strong>0856693433</strong></p>
           <p>Compte : <strong>ARCHIPE KAYEYE</strong></p>
         </div>

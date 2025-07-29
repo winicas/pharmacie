@@ -231,11 +231,7 @@ const HeaderPharmacie = ({ pharmacie, user }: HeaderPharmacieProps) => {
         </div>
 
         {/* ✅ Affichage du nombre de jours restants */}
-        {joursRestants !== null && joursRestants > 0 && (
-          <div className="text-sm text-yellow-100 bg-yellow-600 px-3 py-1 rounded-lg ml-2">
-            ⏳ Il reste {joursRestants} jour(s) avant l’expiration
-          </div>
-        )}
+      
         {joursRestants !== null && joursRestants <= 0 && (
           <div className="text-sm text-red-100 bg-red-600 px-3 py-1 rounded-lg ml-2">
             ❌ Abonnement expiré

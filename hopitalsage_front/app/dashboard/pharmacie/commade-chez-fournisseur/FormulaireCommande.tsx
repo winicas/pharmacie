@@ -289,7 +289,7 @@ console.log("IDs disponibles :", produits.map(p => p.id));
                         <div className="font-semibold">{r.nom_produit || r.nom_personnalise}</div>
                         <div className="text-xs text-gray-600">Fabricant : {r.fabricant_nom || 'N/A'}</div>
                         {r.prix_achat !== undefined && (
-                          <div className="text-xs text-gray-600">Prix : {Number(r.prix_achat).toFixed(2)} Fc</div>
+                          <div className="text-xs text-gray-600">Prix : {Number(r.prix_achat).toFixed(2)} $</div>
                         )}
                       </div>
                       <Button size="sm" onClick={() => ajouterDepuisRequisition(r)}>Ajouter</Button>
