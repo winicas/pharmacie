@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, TrendingUp, DollarSign, ShoppingCart, Star } from 'lucide-react';
+import { Loader2, TrendingUp, DollarSign, ShoppingCart, Star, PackageCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface Rapport {
@@ -18,6 +18,7 @@ export default function RapportGeneral() {
   const [periode, setPeriode] = useState('jour');
   const [rapport, setRapport] = useState<Rapport | null>(null);
   const [loading, setLoading] = useState(false);
+  const [montantStock, setMontantStock] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -39,6 +40,25 @@ export default function RapportGeneral() {
         });
     }
   }, [periode]);
+
+  // Charger le montant du stock une seule fois
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/stock-total/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          setMontantStock(data.montant_stock);
+        })
+        .catch((err) => {
+          console.error('Erreur lors du chargement du montant du stock:', err);
+        });
+    }
+  }, []);
 
   const periodLabel = {
     jour: 'Journalier',
@@ -98,6 +118,13 @@ export default function RapportGeneral() {
               label="Période"
               value={`Du ${rapport.date_debut} au ${rapport.date_fin}`}
             />
+            {montantStock && (
+              <Card
+                icon={<PackageCheck className="text-orange-600" />}
+                label="Valeur du stock"
+                value={`${montantStock} Fc`}
+              />
+            )}
           </motion.div>
         )
       )}

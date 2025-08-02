@@ -1291,3 +1291,25 @@ class LogoutAPIView(APIView):
             return Response({"message": "Déconnexion réussie."}, status=status.HTTP_205_RESET_CONTENT)
         except TokenError as e:
             return Response({"error": f"Token invalide ou déjà blacklisté : {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+############Le Montant total de tout les produits###########
+# views.py
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from decimal import Decimal
+from .models import ProduitPharmacie
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def stock_total(request):
+    pharmacie = request.user.pharmacie  # suppose que l'utilisateur a un champ pharmacie
+    produits = ProduitPharmacie.objects.filter(pharmacie=pharmacie)
+
+    montant_total = Decimal('0.00')
+    for produit in produits:
+        if produit.prix_vente:
+            montant_total += produit.quantite * produit.prix_vente
+
+    return Response({'montant_stock': round(montant_total, 2)})

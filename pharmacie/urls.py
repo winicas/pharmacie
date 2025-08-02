@@ -44,7 +44,8 @@ PubliciteActuelleView,
 PubliciteUploadView,
 CreateDepotPharmaceutiqueView,
 LogoutAPIView,
-LotsProduitPharmacieViewSet
+LotsProduitPharmacieViewSet,
+stock_total
 
 
 
@@ -68,6 +69,7 @@ router.register(r'lotss', LotsProduitPharmacieViewSet, basename='lot')
 urlpatterns = [
     path('api/', include(router.urls)),
     path('api/requisitions/reset/', reset_requisitions),
+    path('api/stock-total/', stock_total),
     path('api/rendez-vous/client/<uuid:client_id>/', RendezVousByClientView.as_view()),
     path('api/rendez-vous/', RendezVousListCreateView.as_view()),
     path('api/clients-avec-rendezvous/', clients_avec_rendezvous, name='clients-avec-rendezvous'),
