@@ -6,9 +6,15 @@ from django.shortcuts import get_object_or_404
 
 
 from django.db.models import Count
+from rest_framework import viewsets, filters
+from django.db.models import Count
+from .models import Fabricant
+from .serializers import FabricantDashboardSerializer, FabricantDetailSerializer
+from comptes.pagination import StandardResultsSetPagination
 
 class FabricantViewSet(viewsets.ModelViewSet):
     queryset = Fabricant.objects.all()
+    pagination_class = StandardResultsSetPagination
     filter_backends = [filters.SearchFilter]
     search_fields = ['nom', 'produits__nom']
 
