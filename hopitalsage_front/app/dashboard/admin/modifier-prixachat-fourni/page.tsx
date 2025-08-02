@@ -63,7 +63,17 @@ const Page = () => {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then(res => res.json())
-        .then(data => setFabricants(data))
+        .then(data => {
+          // Si la réponse est paginée, utilise .results
+          if (Array.isArray(data)) {
+            setFabricants(data)
+          } else if (data.results) {
+            setFabricants(data.results)
+          } else {
+            setFabricants([])
+          }
+        })
+        .catch(() => setFabricants([]))
     }
   }, [])
 
