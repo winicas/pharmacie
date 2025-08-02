@@ -17,16 +17,17 @@ interface User {
 export default function CreateProduit() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [fabricants, setFabricants] = useState<{ id: number; nom: string }[]>([])
-  const [fabricantId, setFabricantId] = useState<string | ''>('')  // UUID string
+  const [fabricantId, setFabricantId] = useState<string | ''>('')
 
   const [nom, setNom] = useState('')
   const [prixAchat, setPrixAchat] = useState<number | ''>('')
-  const [nombrePlaquettes, setNombrePlaquettes] = useState<number | ''>('') 
+  const [nombrePlaquettes, setNombrePlaquettes] = useState<number | ''>('')
   const [success, setSuccess] = useState(false)
 
   const [userData, setUserData] = useState<User | null>(null)
   const [loadingUser, setLoadingUser] = useState(true)
 
+  // Charger les infos utilisateur
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem('user')
@@ -34,30 +35,49 @@ export default function CreateProduit() {
         setUserData(JSON.parse(storedUser))
       }
     } catch (err) {
-      console.error("Erreur lors de la récupération de l'utilisateur", err)
+      console.error("Erreur utilisateur", err)
     } finally {
       setLoadingUser(false)
     }
   }, [])
 
+  // Charger tous les fabricants avec pagination
   useEffect(() => {
-    const fetchFabricants = async () => {
+    const fetchAllFabricants = async () => {
       const accessToken = localStorage.getItem('accessToken')
       if (!accessToken) return
 
+      let page = 1
+      let hasNext = true
+      let allFabricants: { id: number; nom: string }[] = []
+
       try {
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/fabricants/`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        })
-        setFabricants(response.data)
+        while (hasNext) {
+          const response = await axios.get(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/fabricants/?page=${page}`,
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+              },
+            }
+          )
+
+          const data = response.data
+          allFabricants = [...allFabricants, ...(data.results || [])]
+          hasNext = data.next !== null
+          page += 1
+        }
+
+        setFabricants(allFabricants)
       } catch (error) {
         console.error('Erreur chargement fabricants', error)
       }
     }
 
-    fetchFabricants()
+    fetchAllFabricants()
   }, [])
 
+  // Soumettre le formulaire
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSuccess(false)
@@ -70,7 +90,7 @@ export default function CreateProduit() {
       await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits-fabricants/`,
         {
-          fabricant: (fabricantId),
+          fabricant: fabricantId,
           nom,
           prix_achat: prixAchat,
           devise: 'USD',
@@ -235,7 +255,7 @@ export default function CreateProduit() {
           )}
 
           {errorMessage && (
-            <p className="text-red-600 text-center mt-4 font-medium">
+            <p className="text-red-600 text-center mt-4 font-medium whitespace-pre-wrap">
               ❌ {errorMessage}
             </p>
           )}

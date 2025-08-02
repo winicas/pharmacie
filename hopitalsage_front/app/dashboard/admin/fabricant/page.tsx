@@ -47,18 +47,31 @@ export default function CreateFabricant() {
     }
   }, [])
 
-  // Charger les fabricants
-  const fetchFabricants = async () => {
+  // Charger tous les fabricants (pagination)
+  const fetchAllFabricants = async () => {
+    if (!accessToken) return
+    let allFabricants: Fabricant[] = []
+    let page = 1
+    let hasNext = true
+
     try {
-      const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/fabricants/`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      )
-      setFabricants(response.data)
+      while (hasNext) {
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/fabricants/?page=${page}`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        )
+
+        const data = response.data
+        allFabricants = [...allFabricants, ...(data.results || [])]
+        hasNext = data.next !== null
+        page += 1
+      }
+
+      setFabricants(allFabricants)
     } catch (error) {
       console.error('Erreur chargement fabricants', error)
     }
@@ -66,7 +79,7 @@ export default function CreateFabricant() {
 
   useEffect(() => {
     if (accessToken) {
-      fetchFabricants()
+      fetchAllFabricants()
     }
   }, [accessToken])
 
@@ -111,7 +124,7 @@ export default function CreateFabricant() {
 
       setNom('')
       setPays('')
-      fetchFabricants()
+      fetchAllFabricants()
     } catch (error) {
       console.error('Erreur soumission', error)
     }
