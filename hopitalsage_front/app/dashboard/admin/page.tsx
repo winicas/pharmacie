@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import HeaderAdmin from './HeaderAdmin'
 import axios from 'axios'
-import Link from 'next/link'    
+import Link from 'next/link'
 
 interface User {
   id: number
@@ -18,7 +18,7 @@ interface User {
 interface Fabricant {
   id: number
   nom: string
-  produits: any[] // On compte juste leur nombres
+  nombre_produits: number
 }
 
 export default function DashboardAdminPage() {
@@ -45,7 +45,7 @@ export default function DashboardAdminPage() {
         ])
 
         setUserData(userRes.data)
-        setFabricants(fabricantsRes.data)
+        setFabricants(fabricantsRes.data.results) // ✅ important
       } catch (err) {
         console.error('Erreur de chargement des données :', err)
       } finally {
@@ -104,7 +104,7 @@ export default function DashboardAdminPage() {
                 <p className="text-sm text-gray-600 mb-4">
                   Produits enregistrés :{' '}
                   <span className="font-semibold text-gray-800">
-                    {fab.produits.length}
+                    {fab.nombre_produits}
                   </span>
                 </p>
                 <Link
