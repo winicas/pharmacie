@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import HeaderAdmin from './HeaderAdmin'
 import axios from 'axios'
-import Link from 'next/link'
+import Link from 'next/link'    
 
 interface User {
   id: number
@@ -18,7 +18,7 @@ interface User {
 interface Fabricant {
   id: number
   nom: string
-  produits: any[] // On compte juste leur nombre
+  produits: any[] // On compte juste leur nombres
 }
 
 export default function DashboardAdminPage() {

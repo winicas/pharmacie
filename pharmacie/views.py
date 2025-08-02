@@ -1,18 +1,28 @@
 from rest_framework import viewsets
 from .models import Fabricant, ProduitFabricant,TauxChange
-from .serializers import FabricantSerializer,ProduitFabricant, ProduitFabricantSerializer, TauxChangeSerializer
+from .serializers import FabricantSerializer,ProduitFabricant, FabricantDetailSerializer,FabricantDashboardSerializer,ProduitFabricantSerializer, TauxChangeSerializer
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 
-class FabricantViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
-    queryset = Fabricant.objects.all()
-    serializer_class = FabricantSerializer
 
-    def create(self, request, *args, **kwargs):
-        print("Requête reçue :", request.data)
-        return super().create(request, *args, **kwargs)
-    
+from django.db.models import Count
+
+class FabricantViewSet(viewsets.ModelViewSet):
+    queryset = Fabricant.objects.all()
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['nom', 'produits__nom']
+
+    def get_queryset(self):
+        if self.action == 'list':
+            return Fabricant.objects.annotate(nombre_produits=Count('produits'))
+        return super().get_queryset()
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return FabricantDashboardSerializer
+        return FabricantDetailSerializer
+
+
 from rest_framework import viewsets, filters
 from rest_framework.permissions import IsAuthenticated
 from .models import ProduitFabricant
@@ -41,6 +51,8 @@ class ProduitFabricantViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save()
+
+
 class TauxChangeViewSet(viewsets.ModelViewSet):
     queryset = TauxChange.objects.all().order_by('-date')  # Le plus récent en haut
     serializer_class = TauxChangeSerializer

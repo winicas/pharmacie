@@ -1,3 +1,4 @@
+// api/sync.ts (backend Next.js)
 import { NextResponse } from 'next/server';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -13,22 +14,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Direction invalide' }, { status: 400 });
   }
 
-  const command = direction === 'remote_to_local'
-    ? 'docker compose exec backend python hopitalsage_front/sync_remote_to_local.py'
-    : 'docker compose exec backend python hopitalsage_front/sync_local_to_remote.py';
-
   try {
+    // Commande docker selon la direction
+    const dockerCmd = direction === 'remote_to_local'
+      ? 'docker compose exec backend python hopitalsage_front/sync_remote_to_local.py'
+      : 'docker compose exec backend python hopitalsage_front/sync_local_to_remote.py';
+
     let stdout = '';
     let stderr = '';
 
     if (debug) {
-      const { stdout: out, stderr: err } = await execAsync(command, {
+      const { stdout: out, stderr: err } = await execAsync(dockerCmd, {
         maxBuffer: 1024 * 1024 * 10,
       });
       stdout = out;
       stderr = err;
     } else {
-      await execAsync(`${command} > /dev/null 2>&1`, {
+      await execAsync(dockerCmd + ' > /dev/null 2>&1', {
         maxBuffer: 1024 * 1024 * 10,
       });
     }
@@ -50,7 +52,7 @@ export async function POST(request: Request) {
       ...(debug && { logs: stdout || stderr || 'Aucun log disponible.' }),
     });
   } catch (error: any) {
-    console.error('❌ Erreur pendant la synchronisation :', error);
+    console.error('Erreur pendant la synchronisation :', error);
     return NextResponse.json(
       {
         success: false,

@@ -40,7 +40,7 @@ export default function SynchronisationButtons() {
       const res = await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ direction }),
+        body: JSON.stringify({ direction, debug: true }),
       });
 
       const data = await res.json();

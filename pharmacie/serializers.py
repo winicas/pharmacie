@@ -61,6 +61,20 @@ class FabricantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Fabricant
         fields = ['id', 'nom', 'pays_origine', 'produits']
+
+class FabricantDetailSerializer(serializers.ModelSerializer):
+    produits = ProduitFabricantSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Fabricant
+        fields = ['id', 'nom', 'pays_origine', 'produits']
+class FabricantDashboardSerializer(serializers.ModelSerializer):
+    nombre_produits = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Fabricant
+        fields = ['id', 'nom', 'pays_origine', 'nombre_produits']
+
 ######################### Enregistrement de medicament dans une pharmacie ##################
 
 from rest_framework import serializers

@@ -43,8 +43,6 @@ const Page = () => {
   const [modifications, setModifications] = useState<Record<number, Modification>>({})
   const [fabricantSelectionne, setFabricantSelectionne] = useState<string | null>(null)
   const [message, setMessage] = useState<Message | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-
   const [filtreRecherche, setFiltreRecherche] = useState<string>('')
 
   const [userData, setUserData] = useState<User | null>(null)
@@ -69,17 +67,26 @@ const Page = () => {
     }
   }, [])
 
-  const chargerProduits = (fabricantId: string, page = 1) => {
+  const chargerProduits = async (fabricantId: string) => {
     if (!accessToken) return
 
-    fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits/${fabricantId}/?page=${page}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
-      .then(res => res.json())
-      .then(data => {
-        setProduits(data.results || [])
-        setCurrentPage(page)
+    let allProduits: Produit[] = []
+    let page = 1
+    let hasNext = true
+
+    while (hasNext) {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/produits/${fabricantId}/?page=${page}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
       })
+
+      const data = await res.json()
+
+      allProduits = [...allProduits, ...(data.results || [])]
+      hasNext = data.next !== null
+      page += 1
+    }
+
+    setProduits(allProduits)
   }
 
   const handleInputChange = (
@@ -156,20 +163,12 @@ const Page = () => {
     })
   }
 
-  const goToNextPage = () => {
-    if (fabricantSelectionne) {
-      chargerProduits(fabricantSelectionne, currentPage + 1)
-    }
-  }
-
-  const goToPrevPage = () => {
-    if (currentPage > 1 && fabricantSelectionne) {
-      chargerProduits(fabricantSelectionne, currentPage - 1)
-    }
-  }
-
   if (loadingUser) return <div className="flex justify-center items-center min-h-screen">Chargement utilisateur...</div>
   if (!userData) return <div className="flex justify-center items-center min-h-screen text-red-600">Erreur utilisateur</div>
+
+  const produitsFiltres = produits.filter((produit) =>
+    produit.nom.toLowerCase().includes(filtreRecherche.toLowerCase())
+  )
 
   return (
     <main className="p-6 md:p-10 bg-gradient-to-br from-blue-50 to-white min-h-screen">
@@ -214,91 +213,62 @@ const Page = () => {
         </div>
 
         <div className="space-y-6">
-          {produits.length === 0 ? (
-            <p className="text-center text-gray-500 italic">Aucun produit à afficher</p>
+          {produitsFiltres.length === 0 ? (
+            <p className="text-center text-gray-500 italic">Aucun produit trouvé</p>
           ) : (
-            produits
-              .filter((produit) =>
-                produit.nom.toLowerCase().includes(filtreRecherche.toLowerCase())
-              )
-              .map((produit) => {
-                const isModifie = estModifie(produit)
-                return (
-                  <div
-                    key={produit.id}
-                    className={`p-5 rounded-xl shadow transition duration-200 ${
-                      isModifie ? 'bg-green-100 border border-green-300' : 'bg-white'
-                    }`}
-                  >
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm text-gray-600">Nom du médicament</label>
-                        <input
-                          type="text"
-                          defaultValue={produit.nom}
-                          onChange={(e) =>
-                            handleInputChange(produit.id, 'nom', e.target.value)
-                          }
-                          className="w-full border border-gray-300 rounded-lg px-4 py-2 mt-1"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-600">Prix d'achat ({produit.devise})</label>
-                        <input
-                          type="number"
-                          defaultValue={produit.prix_achat}
-                          step="0.01"
-                          onChange={(e) =>
-                            handleInputChange(produit.id, 'prix_achat', parseFloat(e.target.value))
-                          }
-                          className="w-full border border-gray-300 rounded-lg px-4 py-2 mt-1"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-600">Plaquettes/boîte</label>
-                        <input
-                          type="number"
-                          min="1"
-                          defaultValue={produit.nombre_plaquettes_par_boite}
-                          onChange={(e) =>
-                            handleInputChange(produit.id, 'nombre_plaquettes_par_boite', parseInt(e.target.value))
-                          }
-                          className="w-full border border-gray-300 rounded-lg px-4 py-2 mt-1"
-                        />
-                      </div>
+            produitsFiltres.map((produit) => {
+              const isModifie = estModifie(produit)
+              return (
+                <div
+                  key={produit.id}
+                  className={`p-5 rounded-xl shadow transition duration-200 ${
+                    isModifie ? 'bg-green-100 border border-green-300' : 'bg-white'
+                  }`}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-gray-600">Nom du médicament</label>
+                      <input
+                        type="text"
+                        defaultValue={produit.nom}
+                        onChange={(e) =>
+                          handleInputChange(produit.id, 'nom', e.target.value)
+                        }
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 mt-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600">Prix d'achat ({produit.devise})</label>
+                      <input
+                        type="number"
+                        defaultValue={produit.prix_achat}
+                        step="0.01"
+                        onChange={(e) =>
+                          handleInputChange(produit.id, 'prix_achat', parseFloat(e.target.value))
+                        }
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 mt-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600">Plaquettes/boîte</label>
+                      <input
+                        type="number"
+                        min="1"
+                        defaultValue={produit.nombre_plaquettes_par_boite}
+                        onChange={(e) =>
+                          handleInputChange(produit.id, 'nombre_plaquettes_par_boite', parseInt(e.target.value))
+                        }
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 mt-1"
+                      />
                     </div>
                   </div>
-                )
-              })
+                </div>
+              )
+            })
           )}
         </div>
 
-        {/* Pagination */}
-        {produits.length > 0 && (
-          <div className="mt-8 flex justify-between items-center">
-            <button
-              onClick={goToPrevPage}
-              disabled={currentPage === 1}
-              className={`px-4 py-2 rounded-lg ${
-                currentPage === 1
-                  ? 'bg-gray-300 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
-            >
-              ⬅️ Précédent
-            </button>
-            <span className="text-gray-700">Page {currentPage}</span>
-            <button
-              onClick={goToNextPage}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-            >
-              Suivant ➡️
-            </button>
-          </div>
-        )}
-
-        {/* Sauvegarde */}
-        {produits.length > 0 && (
+        {produitsFiltres.length > 0 && (
           <div className="mt-6">
             <button
               onClick={sauvegarderPrix}
