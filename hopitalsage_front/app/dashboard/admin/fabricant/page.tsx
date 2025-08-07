@@ -33,7 +33,6 @@ export default function CreateFabricant() {
 
   const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null
 
-  // Charger l'utilisateur
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem('user')
@@ -47,7 +46,6 @@ export default function CreateFabricant() {
     }
   }, [])
 
-  // Charger tous les fabricants (pagination)
   const fetchAllFabricants = async () => {
     if (!accessToken) return
     let allFabricants: Fabricant[] = []
@@ -83,7 +81,6 @@ export default function CreateFabricant() {
     }
   }, [accessToken])
 
-  // Soumettre le formulaire
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -103,7 +100,6 @@ export default function CreateFabricant() {
             },
           }
         )
-        setSuccess(true)
         setIsEditing(false)
         setEditingId(null)
       } else {
@@ -119,9 +115,9 @@ export default function CreateFabricant() {
             },
           }
         )
-        setSuccess(true)
       }
 
+      setSuccess(true)
       setNom('')
       setPays('')
       fetchAllFabricants()
@@ -137,13 +133,29 @@ export default function CreateFabricant() {
     setEditingId(fabricant.id)
   }
 
-  if (loading) {
-    return <div className="text-center mt-10">Chargement...</div>
+  const handleDelete = async (id: string) => {
+    if (!accessToken) return
+
+    const confirmation = window.confirm('Voulez-vous vraiment supprimer ce fabricant ?')
+    if (!confirmation) return
+
+    try {
+      await axios.delete(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/fabricants/${id}/`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      )
+      fetchAllFabricants()
+    } catch (error) {
+      console.error('Erreur suppression fabricant', error)
+    }
   }
 
-  if (!userData) {
-    return <div className="text-center mt-10 text-red-500">Utilisateur non trouvé</div>
-  }
+  if (loading) return <div className="text-center mt-10">Chargement...</div>
+  if (!userData) return <div className="text-center mt-10 text-red-500">Utilisateur non trouvé</div>
 
   return (
     <>
@@ -177,12 +189,9 @@ export default function CreateFabricant() {
             >
               {isEditing ? 'Modifier' : 'Enregistrer'}
             </button>
-            {success && (
-              <p className="text-green-500 mt-2">Opération réussie !</p>
-            )}
+            {success && <p className="text-green-500 mt-2">Opération réussie !</p>}
           </form>
 
-          {/* Liste des fabricants */}
           <div className="mt-8">
             <h2 className="text-lg font-semibold mb-2">Liste des fabricants</h2>
             {fabricants.length === 0 ? (
@@ -195,12 +204,20 @@ export default function CreateFabricant() {
                       <p className="font-medium">{fab.nom}</p>
                       <p className="text-sm text-gray-600">{fab.pays_origine}</p>
                     </div>
-                    <button
-                      onClick={() => handleEdit(fab)}
-                      className="text-blue-600 hover:underline"
-                    >
-                      Modifier
-                    </button>
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => handleEdit(fab)}
+                        className="text-blue-600 hover:underline"
+                      >
+                        Modifier
+                      </button>
+                      <button
+                        onClick={() => handleDelete(fab.id)}
+                        className="text-red-600 hover:underline"
+                      >
+                        Supprimer
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>

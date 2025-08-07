@@ -31,6 +31,7 @@ MODELS_GLOBAL = [
     ProduitFabricant,
     PublicitePharmacie,
     Pharmacie,
+    User,
     RendezVous,
     CommandeProduitLigne,
     ReceptionProduit,
@@ -44,7 +45,6 @@ MODELS_GLOBAL = [
 ]
 
 MODELS_PAR_PHARMACIE = [
-    User,
     ProduitPharmacie,
     CommandeProduit,
     Client,

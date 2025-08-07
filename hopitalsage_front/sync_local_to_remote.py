@@ -14,19 +14,18 @@ django.setup()
 
 from comptes.models import Pharmacie, User
 from pharmacie.models import (
-    Fabricant, ProduitFabricant, ProduitPharmacie, LotProduitPharmacie,
+    ProduitPharmacie, LotProduitPharmacie,
     CommandeProduit, CommandeProduitLigne, ReceptionProduit, ReceptionLigne,
-    Client, VenteProduit, VenteLigne, TauxChange,
+    Client, VenteProduit, VenteLigne,
     ClientPurchase, MedicalExam, Prescription, Requisition,
-    RendezVous, PublicitePharmacie, DepotPharmaceutique
+    RendezVous
 )
 
 REMOTE = connections['remote']
 
 MODELS_GLOBAL = [
-    Fabricant,
-    ProduitFabricant,
     Pharmacie,
+    User,
     CommandeProduitLigne,
     ReceptionProduit,
     ReceptionLigne,
@@ -39,7 +38,6 @@ MODELS_GLOBAL = [
 ]
 
 MODELS_PAR_PHARMACIE = [
-    User,
     ProduitPharmacie,
     CommandeProduit,
     Client,

@@ -147,6 +147,33 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const handleDeletePharmacie = async (id: number) => {
+    const confirmed = window.confirm('Confirmez-vous la suppression de cette pharmacie ?');
+    if (!confirmed) return;
+
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken) return;
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/pharmacies/${id}/`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (response.ok || response.status === 204) {
+        toast.success('Pharmacie supprimée avec succès');
+        setPharmacies((prev) => prev.filter((p) => p.id !== id));
+      } else {
+        toast.error("Échec de la suppression de la pharmacie");
+      }
+    } catch (error) {
+      toast.error('Erreur réseau lors de la suppression');
+    }
+  };
+
   const addThirtyDays = (dateStr?: string): string => {
     const date = dateStr ? new Date(dateStr) : new Date();
     date.setDate(date.getDate() + 30);
@@ -229,7 +256,7 @@ const SuperAdminDashboard = () => {
             Tableau de Bord SuperAdmin
           </motion.h1>
 
-          {/* Section synchronisation */}
+          {/* Synchronisation */}
           <div className="space-y-2 bg-white dark:bg-zinc-900 rounded-xl shadow-lg p-4">
             <h2 className="text-lg font-semibold">Synchronisation des données</h2>
             <div className="flex gap-4">
@@ -271,7 +298,7 @@ const SuperAdminDashboard = () => {
             )}
           </div>
 
-          {/* Liste des pharmacies */}
+          {/* Table des pharmacies */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -314,14 +341,20 @@ const SuperAdminDashboard = () => {
                           </button>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="space-y-2">
                         <button
                           onClick={() => handleToggleActivation(p.id, p.is_active)}
-                          className={`inline-block py-1 px-2 rounded-md text-white ${
+                          className={`block w-full py-1 px-2 rounded-md text-white text-sm ${
                             p.is_active ? 'bg-gray-500 hover:bg-gray-700' : 'bg-green-600 hover:bg-green-800'
                           }`}
                         >
                           {p.is_active ? 'Désactiver' : 'Activer'}
+                        </button>
+                        <button
+                          onClick={() => handleDeletePharmacie(p.id)}
+                          className="block w-full py-1 px-2 rounded-md bg-red-600 hover:bg-red-800 text-white text-sm"
+                        >
+                          🗑 Supprimer
                         </button>
                       </TableCell>
                     </TableRow>
