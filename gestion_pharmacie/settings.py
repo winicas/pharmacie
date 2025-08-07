@@ -121,7 +121,7 @@ DATABASES = {
         'NAME': 'nicapharm',
         'USER': 'nicapharm_user',
         'PASSWORD': 'WTIVUA2bEab4gowGJyNZ0WRKY5g6tXq8',
-        'HOST': 'dpg-d1t3j93e5dus73e4am20-a.oregon-postgres.render.com',
+        'HOST': 'dpg-d1t3j93e5dus73e4am20-a',
         'PORT': '5432',
     },
     'remote': 
