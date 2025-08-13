@@ -188,7 +188,7 @@ const HeaderPharmacie = ({ pharmacie, user }: HeaderPharmacieProps) => {
       submenu: [
         { href: '/dashboard/pharmacie/vente', label: 'Faite la vente ici', icon: '🛒' },
         { href: '/dashboard/pharmacie/client/ajouter-client', label: 'Creer Nouveau Client', icon: '👨⚕️' },
-        { href: '/dashboard/directeur/historique-vente', label: 'Historique ventes', icon: '⏳' },
+        { href: '/dashboard/directeur/historique-vente', label: 'Rapport Cloture', icon: '⏳' },
         { href: '/dashboard/directeur/historique-user-vente', label: 'Historique de vente Percepteur', icon: '📊' },
       ],
       isTitle: true,
@@ -200,7 +200,7 @@ const HeaderPharmacie = ({ pharmacie, user }: HeaderPharmacieProps) => {
         { href: '/dashboard/directeur/rapport', label: 'Rapport global', icon: '🔍' },
         { href: '/dashboard/directeur/requisition', label: 'Requisition', icon: '🔄' },
         { href: '/dashboard/pharmacie/alertstock', label: 'Alertes rupture', icon: '🚨' },
-        { href: '#', label: 'Historique inventaire', icon: '📅' },
+        { href: '/dashboard/pharmacie/depense', label: 'Gestion de Depense', icon: '📅' },
       ],
       isTitle: true,
     },

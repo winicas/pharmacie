@@ -45,7 +45,8 @@ PubliciteUploadView,
 CreateDepotPharmaceutiqueView,
 LogoutAPIView,
 LotsProduitPharmacieViewSet,
-stock_total
+stock_total,
+DepenseViewSet
 
 
 
@@ -64,6 +65,7 @@ router.register(r'requisitions', RequisitionViewSet, basename='requisitions')
 router.register(r'rendezvous', RendezVousViewSet)
 router.register(r'lots', LotProduitPharmacieViewSet)
 router.register(r'lotss', LotsProduitPharmacieViewSet, basename='lot')
+router.register(r'depenses', DepenseViewSet, basename='depense')
 
 
 urlpatterns = [

@@ -142,7 +142,6 @@ class LotProduitPharmacie(models.Model):
     date_peremption = models.DateField()
     date_entree = models.DateField(auto_now_add=True)
     quantite = models.PositiveIntegerField()
-
     prix_achat = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     prix_vente = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -380,6 +379,7 @@ class RendezVous(models.Model):
     ]
 
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
+    pharmacie = models.ForeignKey(Pharmacie, on_delete=models.CASCADE)
     date = models.DateField(default=timezone.now)  # aujourd'hui par défaut
     heure = models.TimeField(default=time(9, 0))  # 09:00 par défaut
     statut = models.CharField(max_length=10, choices=STATUT_CHOICES, default='à venir')
@@ -403,3 +403,49 @@ class PublicitePharmacie(models.Model):
     
     class Meta:
         ordering = ['-date_debut']
+
+
+import uuid
+from decimal import Decimal
+from django.db import models
+from django.conf import settings  # pour lier à l'utilisateur
+
+class Depense(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    pharmacie = models.ForeignKey(
+        Pharmacie, 
+        on_delete=models.CASCADE, 
+        related_name='depenses'
+    )
+
+    CATEGORIES = [
+        ('transport', 'Transport'),
+        ('nourriture', 'Nourriture'),
+        ('achat_materiel', 'Achat de matériel'),
+        ('salaire', 'Salaire'),
+        ('Loyer', 'Loyer'),
+         ('Autre', 'Autre'),
+    ]
+    categorie = models.CharField(max_length=50, choices=CATEGORIES)
+
+    description = models.TextField(blank=True, null=True)
+    montant = models.DecimalField(max_digits=12, decimal_places=2)
+
+    METHODE_PAIEMENT = [
+        ('cash', 'Cash')
+    ]
+    methode_paiement = models.CharField(max_length=50, choices=METHODE_PAIEMENT, default='cash')
+
+    date_depense = models.DateField(auto_now_add=True)
+    cree_par = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.get_categorie_display()} - {self.montant} ({self.pharmacie.nom_pharm})"

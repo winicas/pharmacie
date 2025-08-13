@@ -261,6 +261,13 @@ from django.utils.dateparse import parse_date
 from .models import VenteProduit
 from .serializers import HistoriqueVenteSerializer
 
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from django.utils.dateparse import parse_date
+from .serializers import HistoriqueVenteSerializer, HistoriqueDepenseSerializer
+
+# views.py
 class HistoriqueVentesAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -269,16 +276,51 @@ class HistoriqueVentesAPIView(APIView):
         date_debut = request.GET.get('date_debut')
         date_fin = request.GET.get('date_fin')
 
+        # DEBUG : pour voir le type de champ
+        # print("Champ date_vente:", VenteProduit._meta.get_field('date_vente'))
+
+        # --- VENTES ---
         ventes = VenteProduit.objects.filter(pharmacie=pharmacie)
 
         if date_debut:
-            ventes = ventes.filter(date_vente__date__gte=parse_date(date_debut))
+            try:
+                parsed_date = parse_date(date_debut)
+                # ✅ Supposons que date_vente est DateTimeField → utilise __date
+                ventes = ventes.filter(date_vente__date__gte=parsed_date)
+            except:
+                pass
+
         if date_fin:
-            ventes = ventes.filter(date_vente__date__lte=parse_date(date_fin))
+            try:
+                parsed_date = parse_date(date_fin)
+                ventes = ventes.filter(date_vente__date__lte=parsed_date)
+            except:
+                pass
 
         ventes = ventes.order_by('-date_vente')
-        serializer = HistoriqueVenteSerializer(ventes, many=True)
-        return Response(serializer.data)
+
+        # --- DÉPENSES ---
+        depenses = Depense.objects.filter(pharmacie=pharmacie)
+
+        if date_debut:
+            parsed_date = parse_date(date_debut)
+            # ✅ date_depense est DateField → pas de __date
+            depenses = depenses.filter(date_depense__gte=parsed_date)
+
+        if date_fin:
+            parsed_date = parse_date(date_fin)
+            depenses = depenses.filter(date_depense__lte=parsed_date)
+
+        depenses = depenses.order_by('-date_depense')
+
+        # Sérialisation
+        ventes_serialized = HistoriqueVenteSerializer(ventes, many=True).data
+        depenses_serialized = HistoriqueDepenseSerializer(depenses, many=True).data
+
+        return Response({
+            "ventes": ventes_serialized,
+            "depenses": depenses_serialized,
+        })
 
 ##################" Statistique Vente #################"
 class ProduitPharmacieListAPIView(generics.ListAPIView):
@@ -1313,3 +1355,19 @@ def stock_total(request):
             montant_total += produit.quantite * produit.prix_vente
 
     return Response({'montant_stock': round(montant_total, 2)})
+
+
+from rest_framework import viewsets, permissions
+from .models import Depense
+from .serializers import DepenseSerializer
+
+class DepenseViewSet(viewsets.ModelViewSet):
+    serializer_class = DepenseSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Filtrer uniquement les dépenses de la pharmacie de l'utilisateur connecté
+        return Depense.objects.filter(pharmacie=self.request.user.pharmacie)
+
+    def perform_create(self, serializer):
+        serializer.save(cree_par=self.request.user)

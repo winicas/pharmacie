@@ -1,4 +1,5 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import HeaderDirecteur from '@/components/HeaderDirecteur';
@@ -48,6 +49,7 @@ export default function RequisitionPage() {
   const [user, setUser] = useState<User | null>(null);
   const [pharmacie, setPharmacie] = useState<Pharmacie | null>(null);
   const [isLoadingSearch, setIsLoadingSearch] = useState(false);
+
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncLog, setSyncLog] = useState<string | null>(null);
   const [progress, setProgress] = useState<number>(0);
@@ -89,11 +91,28 @@ export default function RequisitionPage() {
   }, [accessToken]);
 
   useEffect(() => {
-    if (!searchTerm.trim()) {
-      setProduits([]);
-      return;
+    const timer = setTimeout(() => {
+      setAfficherAlerte(true);
+    }, 300000); // 5 minutes
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (syncLoading) {
+      setProgress(0);
+      interval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 90) return prev;
+          return prev + Math.floor(Math.random() * 5) + 2;
+        });
+      }, 250);
     }
-    if (searchTerm.trim().length < 2) {
+    return () => clearInterval(interval);
+  }, [syncLoading]);
+
+  useEffect(() => {
+    if (!searchTerm.trim() || searchTerm.trim().length < 2) {
       setProduits([]);
       return;
     }
@@ -111,6 +130,7 @@ export default function RequisitionPage() {
         })
         .finally(() => setIsLoadingSearch(false));
     }, 400);
+
     return () => clearTimeout(delayDebounce);
   }, [searchTerm]);
 
@@ -125,13 +145,6 @@ export default function RequisitionPage() {
       else console.error('Erreur chargement des réquisitions :', error);
     }
   };
-useEffect(() => {
-  const timer = setTimeout(() => {
-    setAfficherAlerte(true);
-  }, 300000); // 5 minutes
-
-  return () => clearTimeout(timer);
-}, []);
 
   useEffect(() => {
     if (accessToken && pharmacieId) {
@@ -200,7 +213,6 @@ useEffect(() => {
     }
   };
 
-  // Fonction de synchronisation
   const sync = async (direction: 'remote_to_local' | 'local_to_remote') => {
     const confirmationMessage =
       direction === 'remote_to_local'
@@ -218,7 +230,7 @@ useEffect(() => {
       const res = await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ direction }),
+        body: JSON.stringify({ direction, debug: true }),
       });
 
       const data = await res.json();
@@ -226,7 +238,9 @@ useEffect(() => {
 
       if (data.success) {
         setSyncLog(`✅ ${data.message || 'Synchronisation terminée avec succès.'}`);
-        if (direction === 'remote_to_local') await chargerRequisitions(); // Recharger les données si sync depuis serveur
+        if (direction === 'remote_to_local') {
+          await chargerRequisitions();
+        }
       } else {
         setSyncLog(`❌ ${data.error || 'Erreur inconnue.'}`);
       }
@@ -246,15 +260,14 @@ useEffect(() => {
         <main className="min-h-screen bg-gray-100 p-8 space-y-6">
           <h1 className="text-3xl font-bold text-blue-700 mb-2">Réquisition de Médicaments</h1>
 
-          {/* Section de synchronisation */}
-          <div className="space-y-2">
           {afficherAlerte && (
-  <h2 className="text-sm text-gray-600 italic text-right mb-4">
-    🔔 Pensez à sauvegarder vos données chaque soir avant de fermer la pharmacie pour sécuriser vos ventes et recevoir les mises à jour. ⏳ Cette opération peut prendre entre 20 à 40 minutes, merci de patienter jusqu’à la fin.
-  </h2>
-)}
+            <h2 className="text-sm text-gray-600 italic text-right mb-4">
+              🔔 Pensez à sauvegarder vos données chaque soir avant de fermer la pharmacie pour sécuriser vos ventes et recevoir les mises à jour. ⏳ Cette opération peut prendre entre 20 à 40 minutes, merci de patienter jusqu’à la fin.
+            </h2>
+          )}
 
-
+          {/* Synchronisation */}
+          <div className="space-y-2">
             <div className="flex gap-4">
               <button
                 className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
@@ -271,6 +284,7 @@ useEffect(() => {
                 🔼 Enregistrer de l'Ordinateur vers Cloud
               </button>
             </div>
+
             {(syncLoading || syncLog) && (
               <div className="space-y-2 mt-2">
                 <div className="relative w-full h-6 rounded-full overflow-hidden bg-gray-200">
@@ -310,14 +324,14 @@ useEffect(() => {
             )}
           </div>
 
-          {/* Message d'erreur */}
+          {/* Message erreur */}
           {messageErreur && (
             <div className="mb-4 text-red-600 bg-red-100 p-3 rounded">
               ⚠️ {messageErreur}
             </div>
           )}
 
-          {/* Bouton nettoyer */}
+          {/* Nettoyage */}
           <div className="mb-6">
             <button
               onClick={nettoyerRequisitions}
@@ -329,7 +343,6 @@ useEffect(() => {
 
           {/* Formulaire et Liste */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Formulaire */}
             <div>
               <input
                 className="w-full p-3 border rounded mb-4"
@@ -348,9 +361,7 @@ useEffect(() => {
                       className="p-3 bg-blue-100 hover:bg-blue-200 rounded text-left shadow"
                     >
                       <p className="font-semibold">{p.nom}</p>
-                      <p className="text-sm text-gray-600">
-                        Fabricant : {p.fabricant_nom || "Non spécifié"}
-                      </p>
+                      <p className="text-sm text-gray-600">Fabricant : {p.fabricant_nom || "Non spécifié"}</p>
                     </button>
                   ))}
                 </div>
@@ -370,7 +381,6 @@ useEffect(() => {
               </button>
             </div>
 
-            {/* Liste des réquisitions */}
             <div>
               <h2 className="text-xl font-semibold mb-4 text-gray-700">📋 Liste des réquisitions</h2>
               {requisitions.length === 0 ? (

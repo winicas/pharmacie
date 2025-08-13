@@ -26,25 +26,21 @@ REMOTE = connections['remote']
 MODELS_GLOBAL = [
     Pharmacie,
     User,
-    CommandeProduitLigne,
-    ReceptionProduit,
-    ReceptionLigne,
-    VenteLigne,
-    ClientPurchase,
-    MedicalExam,
-    Prescription,
-    LotProduitPharmacie
+    
+    
    
 ]
 
 MODELS_PAR_PHARMACIE = [
     ProduitPharmacie,
     CommandeProduit,
-    Client,
+    CommandeProduitLigne,
+    ReceptionProduit,
+    ReceptionLigne,
+    LotProduitPharmacie,
     VenteProduit, 
-    Requisition,
-    RendezVous,
-     
+    VenteLigne,
+    Requisition,    
 ]
 
 
@@ -54,7 +50,7 @@ def get_current_pharmacie():
 def sync_model_to_remote(model, filter_kwargs=None):
     qs = model.objects.using('default')
 
-    # Vérifier si on peut filtrer par "pharmacie"
+    # Vérifier si on peut filtrer parv "pharmacie"
     if filter_kwargs and 'pharmacie' in filter_kwargs:
         if 'pharmacie' in [field.name for field in model._meta.get_fields()]:
             qs = qs.filter(**filter_kwargs)

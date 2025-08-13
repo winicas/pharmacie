@@ -455,10 +455,20 @@ from .models import VenteProduit, VenteLigne
 
 class VenteLignessSerializer(serializers.ModelSerializer):
     produit = serializers.CharField(source='produit.nom_medicament')
+    prix_unitaire = serializers.DecimalField(source='produit.prix_vente', max_digits=10, decimal_places=2)
+    stock_restant = serializers.SerializerMethodField()
 
     class Meta:
         model = VenteLigne
-        fields = ['produit', 'quantite', 'prix_unitaire', 'total']
+        fields = ['produit', 'quantite', 'prix_unitaire', 'total', 'stock_restant']
+
+    def get_stock_restant(self, obj):
+        # Le produit a déjà été mis à jour : quantite = stock après vente
+        return obj.produit.quantite
+from rest_framework import serializers
+from .models import VenteProduit, Depense
+from .serializers import VenteLignessSerializer  # Assurez-vous que ce serializer existe
+
 
 class HistoriqueVenteSerializer(serializers.ModelSerializer):
     utilisateur = serializers.CharField(source='utilisateur.username', default=None)
@@ -468,6 +478,15 @@ class HistoriqueVenteSerializer(serializers.ModelSerializer):
     class Meta:
         model = VenteProduit
         fields = ['id', 'date_vente', 'utilisateur', 'client', 'montant_total', 'lignes']
+
+
+class HistoriqueDepenseSerializer(serializers.ModelSerializer):
+    utilisateur = serializers.CharField(source='cree_par.username', default="Inconnu")
+    categorie = serializers.CharField(source='get_categorie_display')
+
+    class Meta:
+        model = Depense
+        fields = ['id', 'date_depense', 'utilisateur', 'montant', 'description', 'categorie']
 
 
 from rest_framework import serializers
@@ -835,3 +854,19 @@ class DepotPharmaceutiqueSerializer(serializers.ModelSerializer):
             'id', 'fabricant', 'nom_depot', 'ville', 'commune',
             'quartier', 'adresse_complete', 'latitude', 'longitude', 'telephone'
         ]
+
+from rest_framework import serializers
+from .models import Depense
+
+class DepenseSerializer(serializers.ModelSerializer):
+    categorie_display = serializers.CharField(source='get_categorie_display', read_only=True)
+    methode_paiement_display = serializers.CharField(source='get_methode_paiement_display', read_only=True)
+
+    class Meta:
+        model = Depense
+        fields = [
+            'id', 'pharmacie', 'categorie', 'categorie_display',
+            'description', 'montant', 'methode_paiement', 'methode_paiement_display',
+            'date_depense', 'cree_par', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'cree_par', 'created_at', 'updated_at']

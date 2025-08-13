@@ -166,7 +166,7 @@ const HeaderPharmacie = ({ pharmacie, user }: HeaderPharmacieProps) => {
       submenu: [
         { href: "/dashboard/comptable/ventes", label: "Faire la vente ici", icon: "🛒" },
         { href: "/dashboard/comptable/client/ajouter-client", label: "Créer Nouveau Client", icon: "👨⚕️" },
-        { href: "#", label: "Historique ventes", icon: "⏳" },
+        { href: "/dashboard/comptable/depense", label: "Depense du Jour", icon: "⏳" },
         { href: "#", label: "Statistiques", icon: "📊" },
       ],
       isTitle: true,
@@ -223,7 +223,7 @@ const HeaderPharmacie = ({ pharmacie, user }: HeaderPharmacieProps) => {
             onClick={() => setOpenMenu(openMenu === "clientUser" ? null : "clientUser")}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-100/30 hover:bg-emerald-200/40 text-white rounded-xl transition-all text-sm"
           >
-            👥 Gestion utilisateurs
+            👥 Gestion des Clients
           </button>
           <AnimatePresence>
             {openMenu === "clientUser" && renderMenu(clientUserMenuItems, "clientUser")}

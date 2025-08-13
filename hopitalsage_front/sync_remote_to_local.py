@@ -1,102 +1,110 @@
-# sync_remote_to_local.py
 import os
 import sys
-from django.utils import timezone
-from django.db import connections
-from django.db.utils import IntegrityError
+from django.db import IntegrityError
 
-# Config Django
+# Configuration Django
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 DJANGO_BASE_DIR = os.path.abspath(os.path.join(CURRENT_DIR, '..'))
 sys.path.append(DJANGO_BASE_DIR)
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "gestion_pharmacie.settings")
+
 import django
 django.setup()
 
 from comptes.models import Pharmacie, User
 from pharmacie.models import (
-    Fabricant, ProduitFabricant, ProduitPharmacie, LotProduitPharmacie,
-    CommandeProduit, CommandeProduitLigne, ReceptionProduit, ReceptionLigne,
-    Client, VenteProduit, VenteLigne, TauxChange,
-    ClientPurchase, MedicalExam, Prescription, Requisition,
-    RendezVous, PublicitePharmacie, DepotPharmaceutique
+    TauxChange, Fabricant, ProduitFabricant, ProduitPharmacie,
+    CommandeProduit, CommandeProduitLigne,
+    ReceptionProduit, ReceptionLigne,
+    Client, VenteProduit, VenteLigne
 )
 
-REMOTE = connections['remote']
-
+# Modèles globaux (pas liés directement à une pharmacie)
 MODELS_GLOBAL = [
     TauxChange,
     Fabricant,
-    DepotPharmaceutique,
     ProduitFabricant,
-    PublicitePharmacie,
     Pharmacie,
-    User,
-    RendezVous,
-    CommandeProduitLigne,
-    ReceptionProduit,
-    ReceptionLigne,
-    VenteLigne,
-    ClientPurchase,
-    MedicalExam,
-    Prescription,
-    LotProduitPharmacie
-   
+    User
 ]
 
+# Modèles liés à une pharmacie spécifique
 MODELS_PAR_PHARMACIE = [
     ProduitPharmacie,
     CommandeProduit,
+    CommandeProduitLigne,
+    ReceptionProduit,
+    ReceptionLigne,
     Client,
-    VenteProduit, 
-    Requisition,
-    
-     
+    VenteProduit,
+    VenteLigne
 ]
 
+# Mapping pour filtrer par pharmacie
+PHARMACIE_LOOKUPS = {
+    ProduitPharmacie: "pharmacie",
+    CommandeProduit: "pharmacie",
+    CommandeProduitLigne: "commande__pharmacie",
+    ReceptionProduit: "pharmacie",
+    ReceptionLigne: "reception__pharmacie",
+    Client: "pharmacie",
+    VenteProduit: "pharmacie",
+    VenteLigne: "vente__pharmacie"
+}
+
 def get_current_pharmacie():
+    """Retourne la première pharmacie trouvée en local"""
     return Pharmacie.objects.using('default').first()
 
-def sync_model_to_local(model, filter_kwargs=None):
-    qs = model.objects.using('remote')
-    if filter_kwargs:
-        qs = qs.filter(**filter_kwargs)
+def sync_data(source_db, target_db, model, pharmacie=None):
+    """Synchronise un modèle entre deux bases"""
+    qs = model.objects.using(source_db)
 
-    print(f"\n🔄 {model.__name__} Render ➜ local...")
+    # Si le modèle dépend d'une pharmacie, on filtre
+    if pharmacie and model in PHARMACIE_LOOKUPS:
+        lookup = PHARMACIE_LOOKUPS[model]
+        qs = qs.filter(**{lookup: pharmacie})
 
-    for remote_obj in qs.iterator():
+    for obj in qs:
         try:
-            local_obj = model.objects.using('default').get(pk=remote_obj.pk)
-        except model.DoesNotExist:
-            local_obj = None
-
-        if not local_obj:
-            print(f"➕ {model.__name__} (id={remote_obj.pk}) ➜ local")
-            try:
-                remote_obj.save(using='default')
-            except IntegrityError as e:
-                print(f"⚠️ IntegrityError: {e}")
-        else:
-            if hasattr(remote_obj, 'updated_at') and hasattr(local_obj, 'updated_at'):
-                if remote_obj.updated_at > local_obj.updated_at:
-                    print(f"📝 Update {model.__name__} (id={remote_obj.pk}) ➜ local")
-                    remote_obj.save(using='default')
+            target_obj = model.objects.using(target_db).filter(pk=obj.pk).first()
+            if not target_obj:
+                # Création dans la base cible
+                model.objects.using(target_db).create(**{
+                    field.name: getattr(obj, field.name)
+                    for field in model._meta.fields
+                    if field.name != "id"
+                })
+            else:
+                # Mise à jour si updated_at est plus récent
+                if hasattr(obj, "updated_at") and obj.updated_at > getattr(target_obj, "updated_at", None):
+                    for field in model._meta.fields:
+                        if field.name != "id":
+                            setattr(target_obj, field.name, getattr(obj, field.name))
+                    target_obj.save(using=target_db)
+        except IntegrityError as e:
+            print(f"Erreur d'intégrité sur {model.__name__} ({obj.pk}): {e}")
+        except Exception as e:
+            print(f"Erreur lors de la synchro {model.__name__} ({obj.pk}): {e}")
 
 def run():
-    print("\n🚀 Sync RENDER ➜ LOCAL")
-
     pharmacie = get_current_pharmacie()
+
     if not pharmacie:
-        print("❌ Aucune pharmacie locale trouvée.")
+        print("Aucune pharmacie locale trouvée. Synchronisation annulée.")
         return
 
+    print("=== Synchronisation REMOTE → LOCAL ===")
     for model in MODELS_GLOBAL:
-        sync_model_to_local(model)
-
+        sync_data("remote", "default", model)
     for model in MODELS_PAR_PHARMACIE:
-        sync_model_to_local(model, {'pharmacie': pharmacie})
+        sync_data("remote", "default", model, pharmacie=pharmacie)
 
-    print("\n✅ Synchronisation Render ➜ locale terminée.")
+    print("=== Synchronisation LOCAL → REMOTE ===")
+    for model in MODELS_GLOBAL:
+        sync_data("default", "remote", model)
+    for model in MODELS_PAR_PHARMACIE:
+        sync_data("default", "remote", model, pharmacie=pharmacie)
 
 if __name__ == "__main__":
     run()
