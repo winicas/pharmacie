@@ -408,10 +408,13 @@ class PublicitePharmacie(models.Model):
 import uuid
 from decimal import Decimal
 from django.db import models
-from django.conf import settings  # pour lier à l'utilisateur
+from django.conf import settings
+from django.core.validators import MinValueValidator
+ # à adapter selon ton projet
 
 class Depense(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
     pharmacie = models.ForeignKey(
         Pharmacie, 
         on_delete=models.CASCADE, 
@@ -423,20 +426,30 @@ class Depense(models.Model):
         ('nourriture', 'Nourriture'),
         ('achat_materiel', 'Achat de matériel'),
         ('salaire', 'Salaire'),
-        ('Loyer', 'Loyer'),
-         ('Autre', 'Autre'),
+        ('loyer', 'Loyer'),
+        ('autre', 'Autre'),
     ]
-    categorie = models.CharField(max_length=50, choices=CATEGORIES)
+    categorie = models.CharField(max_length=50, choices=CATEGORIES, db_index=True)
 
     description = models.TextField(blank=True, null=True)
-    montant = models.DecimalField(max_digits=12, decimal_places=2)
+
+    montant = models.DecimalField(
+        max_digits=12, 
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
 
     METHODE_PAIEMENT = [
-        ('cash', 'Cash')
+        ('cash', 'Cash'),
     ]
-    methode_paiement = models.CharField(max_length=50, choices=METHODE_PAIEMENT, default='cash')
+    methode_paiement = models.CharField(
+        max_length=50, 
+        choices=METHODE_PAIEMENT, 
+        default='cash'
+    )
 
-    date_depense = models.DateField(auto_now_add=True)
+    date_depense = models.DateField(auto_now_add=True, db_index=True)
+
     cree_par = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.SET_NULL, 
@@ -449,3 +462,8 @@ class Depense(models.Model):
 
     def __str__(self):
         return f"{self.get_categorie_display()} - {self.montant} ({self.pharmacie.nom_pharm})"
+
+    class Meta:
+        ordering = ['-date_depense']
+        verbose_name = "Dépense"
+        verbose_name_plural = "Dépenses"
